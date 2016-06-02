@@ -5,10 +5,11 @@ The script `theDAOVoter` is a small (~620 lines) Perl script that allows you to 
 
 This script will run in Linux, should run on Mac OS/X and may run on Windows using one of the Perl distributions including Cygwin and Active State Perl.
 
-Before running this script, start the Go Ethereum node client using the command
+Before running this script, start the Go Ethereum node client using the command:
+
     geth console
 
-You can then run `$HOME/bin/theDAOVoter`. Here are some sample uses of this script with results:
+You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
 
     # List all your accounts including the totals
     user@Kumquat:~$ theDAOVoter --listaccounts
