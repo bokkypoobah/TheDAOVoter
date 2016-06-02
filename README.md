@@ -55,7 +55,7 @@ Run the script without any parameters to view the following help text:
     
     The DAO Voter v 1.0000000000000000 02/06/2016.
     
-    Usage: /home/bok/bin/theDAOVoter {command} [options]
+    Usage: /home/user/bin/theDAOVoter {command} [options]
     
     Commands are:
       --listaccounts
