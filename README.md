@@ -41,7 +41,7 @@ You can then run `$HOME/bin/theDAOVoter`. Here are some sample uses of this scri
     =========================================================================================================================================
 
     # A NO vote on proposal #2 from account #1
-    user@Kumquat:~$ theDAOCLIVoter --vote --id=2 --account=1 --support=0
+    user@Kumquat:~$ theDAOVoter --vote --id=2 --account=1 --support=0
     Enter password for 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb to vote: 
     Transaction Id 0x5555555555555555555555555555555555555555555555555555555555555555
 
