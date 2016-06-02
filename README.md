@@ -53,7 +53,7 @@ Run the script without any parameters to view the following help text:
 
     user@Kumquat:~$ theDAOVoter
     
-    The DAO Voter v 1.0000000000000000 02/06/2016.
+    The DAO Voter v 1.0000000000000001 02/06/2016.
     
     Usage: /home/user/bin/theDAOVoter {command} [options]
     
@@ -78,6 +78,9 @@ Run the script without any parameters to view the following help text:
       --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...).
       --support={0|n|1|y}            Don't support (0 or n) or support (1 or y) proposal.
       --force                        Force a vote even when this tool reports that you have already voted.
+    
+    There following options can be use generally:
+      --verbose                      Display what this script is doing.
     
     The following commands are the more frequently used ones:
       This help
