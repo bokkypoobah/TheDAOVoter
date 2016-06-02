@@ -1,0 +1,620 @@
+#!/usr/bin/perl -W
+# 
+# Copyright (c) 2016 BokkyPooBah.
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in 
+# the Software without restriction, including without limitation the rights to 
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+# of the Software, and to permit persons to whom the Software is furnished to do 
+# so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# 
+
+use strict;
+use Getopt::Long qw(:config no_auto_abbrev);
+use Text::Wrap;
+
+# Adjust $GETHBINARY to point to geth if it is not on your search path
+my $GETHBINARY = "geth";
+my $THEDAOADDRESS = "0xBB9bc244D798123fDe783fCc1C72d3Bb8C189413";
+my $DEFAULTFIRST = 1;
+my $DEFAULTSPLIT = "exclude";
+my $DEFAULTSTATUS = "open";
+my $VOTESIGNATUREHASH = "0xc9d27afe"; # web3.sha3('vote(uint256,bool)').substr(0, 10) == "0xc9d27afe"
+my $ESTIMATEGASMAXGAS = 1000000;
+my $ESTIMATEDGASVOTING = 100000;
+my $UNLOCKACCOUNTSECONDS = 2;
+
+my $helptext = qq\
+The DAO Voter v 1.0000000000000000 02/06/2016.
+
+Usage: $0 {command} [options]
+
+Commands are:
+  --listaccounts
+  --listproposals
+  --vote
+  --help
+
+The --listaccounts command has no additional option.
+
+The --listproposals command has additional optional options:
+  --id={proposal id}             Proposal id.
+  --first={first proposal id}    First proposal id. Default '$DEFAULTFIRST'.
+  --last={last proposal id}      Last proposal id. Default last proposal id.
+  --split={exclude|include|only} Include splits. Default '$DEFAULTSPLIT'.
+  --status={open|closed|both}    Proposal status. Default '$DEFAULTSTATUS'.
+  --checkvotingstatus            Check your voting status for the proposals. Default off.
+
+The --vote command has the additional options:
+  --id={proposal id}             Proposal id.
+  --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...).
+  --support={0|n|1|y}            Don't support (0 or n) or support (1 or y) proposal.
+  --force                        Force a vote even when this tool reports that you have already voted.
+
+The following commands are the more frequently used ones:
+  This help
+    $0
+  List accounts
+    $0 --listaccounts
+  List proposals (excluding splits, open proposals only)
+    $0 --listproposals 
+  List proposals (excluding splits, open proposals only) and check voting status for your accounts
+    $0 --listproposals --checkvotingstatus
+  List proposals #2 and check voting status for your accounts
+    $0 --listproposals --id=2 --checkvotingstatus
+  Vote on proposal #2 from account #1, not supporting this vote
+    $0 --vote --id=2 --account=1 --support=0
+
+
+REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
+or ActiveState Perl on Windows. 
+
+You will need to have geth (go Ethereum node software) on your path. geth is available from 
+https://github.com/ethereum/go-ethereum/releases .
+
+geth is also packaged with the Ethereum Wallet (Mist) downloads. You will find the geth binary in the Ethereum
+Wallet subdirectory under resources/node/geth/geth . Modify the GETHBINARY variable above to point to your geth path
+if necessary.
+
+
+NOTE - Only the --vote command will require you to enter your password to unlock your geth keystore. Check the code
+below if you are concerned. The other --listaccounts and --listproposals commands do not require the unlocking of
+your geth keystore.
+
+
+WARNING - This script uses the same method as the Ethereum Wallet (Mist) to unlock your account in geth
+when you are sending your vote to the Ethereum blockchain. Make sure that you start geth without the 
+--rpc option when using geth with this script. See the following URL about the security issues with this keystore
+unlocking methodology:
+
+http://ethereum.stackexchange.com/questions/3887/how-to-reduce-the-chances-of-your-ethereum-wallet-getting-hacked
+
+
+Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
+
+Enjoy, and vote well. BokkyPooBah 2016.
+
+Stopped\;
+
+my ($listAccounts, $listProposals, $vote);
+my ($id, $first, $last, $split, $proposalstatus, $format, $checkVotingStatus, $account, $support, $force);
+my ($help, $verbose);
+my $status = 0;
+
+GetOptions(
+  "listaccounts"      => \$listAccounts,
+  "listproposals"     => \$listProposals,
+  "vote"              => \$vote,
+  "help"              => \$help,
+  "verbose"           => \$verbose,
+  "id:n"              => \$id,
+  "first:n"           => \$first,
+  "last:n"            => \$last,
+  "status:s"          => \$proposalstatus,
+  "split:s"           => \$split,
+  "format:s"          => \$format,
+  "checkVotingStatus" => \$checkVotingStatus,
+  "account:s"         => \$account,
+  "support:s"         => \$support,
+  "force"             => \$force)
+or die $helptext;
+
+my ($terminalWidth) = `stty size` =~ /\d+\s+(\d+)/;
+$Text::Wrap::columns = $terminalWidth;
+
+if (defined $help) {
+  $status = 1;
+} elsif (defined $listAccounts) {
+  $status = listAccounts();
+} elsif (defined $listProposals) {
+  my $numberOfProposals = getNumberOfProposals();
+  printf "Number of proposals: %d\n", $numberOfProposals
+    if defined $verbose;
+  my ($proposalfrom, $proposalto);
+  if (defined $id) {
+    if ($id > 0 && $id <= $numberOfProposals) {
+      $proposalfrom = $id;
+      $proposalto = $id;
+    } else {
+      printf "Error: --id must be >= 1 and <= $numberOfProposals\n";
+      $status = 2;
+    }
+  } else {
+    if (defined $first) {
+      if ($first > 0 && $first <= $numberOfProposals) {
+        $proposalfrom = $first;
+      } else {
+        printf "Error: --first must be >= 1 and <= $numberOfProposals\n";
+        $status = 2;
+      }
+    } else {
+      $proposalfrom = $DEFAULTFIRST;
+    }
+    if (defined $last) {
+      if ($last > 0 && $last <= $numberOfProposals) {
+        $proposalto = $last;
+      } else {
+        printf "Error: --last must be >= 1 and <= $numberOfProposals\n";
+        $status = 2;
+      }
+    } else {
+      $proposalto = $numberOfProposals;
+    }
+    if (defined $first && defined $last && $first > $last) {
+      printf "Error: --first must be <= --last\n";
+      $status = 2;
+    }
+  }
+  if (defined $proposalstatus && !($proposalstatus eq "open" || $proposalstatus eq "closed" || $proposalstatus eq "both")) {
+    printf "Error: --status must be 'open', 'closed' or 'both'\n";
+    $status = 2;
+  } elsif (!defined $proposalstatus) {
+    $proposalstatus = $DEFAULTSTATUS;
+  }
+  if (defined $split && !($split eq "exclude" || $split eq "include" || $split eq "only")) {
+    printf "Error: --split must be 'exclude', 'include' or 'only'\n";
+    $status = 2;
+  } elsif (!defined $split) {
+    $split = $DEFAULTSPLIT;
+  }
+  if ($status == 0) {
+    $status = listProposals($proposalfrom, $proposalto, $proposalstatus, $split);
+  }
+} elsif (defined $vote) {
+  my $numberOfProposals = getNumberOfProposals();
+  printf "Number of proposals: %d\n", $numberOfProposals
+    if defined $verbose;
+  if (defined $id) {
+    if ($id <= 0 || $id > $numberOfProposals) {
+      printf "Error: --id must be >= 1 and <= $numberOfProposals\n";
+      $status = 2;
+    }
+  }
+  my %accounts = getAccounts();
+  my $votingAddress;
+  if (defined $account) {
+    if ($account =~ /^\d+$/) {
+      if ($account >= 0 && $account < scalar keys %accounts) {
+        $votingAddress = $accounts{$account}->{account};
+      }
+    } elsif ($account =~ /[0-9a-f]*/i) {
+      if ($account =~ /0x[0-9a-f]*/i && length($account) == 42) {
+        $votingAddress = $account;
+      } elsif ($account =~ /[0-9a-f]*/i && length($account) == 40) {
+        $votingAddress = "0x" . $account;
+      }
+    }
+  }
+  if (!defined $votingAddress) {
+    printf "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\n";
+    $status = 2; 
+  }
+  my $supportProposal;
+  if (defined $support) {
+    if ($support =~ /[0nN]/) {
+      $supportProposal = 0;
+    } elsif ($support =~ /[1yY]/) {
+      $supportProposal = 1;
+    }
+  }
+  if (!defined $supportProposal) {
+    printf "Error: --support can be 0, n or N if you don't support the proposal, or 1, y or Y if you support the proposal\n";
+    $status = 2; 
+  }
+  $force = 0
+    unless defined $force;
+  if ($status == 0) {
+    $status = vote($votingAddress, $id, $supportProposal, $force);
+  }
+} else {
+  $status = 1;
+}
+
+die $helptext
+  if $status == 1;
+
+exit;
+
+
+# ------------------------------------------------------------------------------
+# List accounts
+# ------------------------------------------------------------------------------
+sub listAccounts {
+  my %accounts = getAccounts();
+  printf "  # Account                                                            ETH                        DAO\n";
+  printf "--- ------------------------------------------ --------------------------- --------------------------\n";
+  for (my $i = 0; $i < scalar keys %accounts; $i++) {
+    my $account = $accounts{$i};
+    if ($account->{account} =~ /Total/) {
+      printf "--- ------------------------------------------ --------------------------- --------------------------\n";
+    }
+    printf "%3d %-42s %27s %26s\n", $i, $account->{account}, $account->{ethers}, $account->{daos};
+  }
+  return 0;
+}
+
+
+# ------------------------------------------------------------------------------
+# List proposals
+# ------------------------------------------------------------------------------
+sub listProposals {
+  my ($first, $last, $status, $split) = @_;
+  printf scalar localtime . " listProposals($first, $last, $status, $split, $format)\n"
+    if defined $verbose;
+  
+  my %accounts = ();
+  if ($checkVotingStatus) {
+    %accounts = getAccounts();
+  }
+
+  my %proposals = getProposals($first, $last, $status, $split);
+  foreach my $proposalId (sort { $a <=> $b } keys %proposals) {
+    my $proposal = $proposals{$proposalId};
+    my $recipient = $proposal->{recipient};
+    my $amount = $proposal->{amount};
+    my $description = $proposal->{description};
+    my $descriptionFormatted = $description;
+    $descriptionFormatted =~ s/\\n/\n/g;
+    $descriptionFormatted =~ s/(\R)(?:\h*\R)+/$1$1/g;
+    my $votingDeadline = $proposal->{votingDeadline};
+    my $open = $proposal->{open};
+    my $proposalPassed = $proposal->{proposalPassed};
+    my $proposalDeposit = $proposal->{proposalDeposit};
+    my $newCurator = $proposal->{newCurator};
+    my $yea = $proposal->{yea};
+    my $nay = $proposal->{nay};
+    my $creator = $proposal->{creator};
+    my $yeaPercent = $proposal->{yeaPercent};
+    my $nayPercent = $proposal->{nayPercent};
+    my $percent = $proposal->{percent};
+    my $quorum = $proposal->{quorum};
+    my $close;
+    my $passed;
+    if ($open) {
+      $close = "OPEN until " . scalar localtime $votingDeadline;
+      $passed = "";
+    } else {
+      $close = "CLOSED " . scalar localtime $votingDeadline;
+      $passed = $proposalPassed eq "true" ? "PASSED, " : "NOT PASSED, ";
+    }
+    printf "=" x $terminalWidth . "\n";
+    printf "Proposal %d. %s%s\n", $proposalId, $passed, $close;
+    printf "Votes       Yea %.0f (%.2f%%) Nay %.0f (%.2f%%) Quorum %.2f%% of %.0f%%\n", 
+      $yea, $yeaPercent, $nay, $nayPercent, $percent, $quorum;
+    printf "Creator     %s\n", $creator;
+    printf "Recipient   %s\n", $recipient;
+    printf "Deposit     %s ETH\n", $proposalDeposit;
+    printf "Amount      %s ETH\n", $amount;
+    printf "New curator %s\n", $newCurator ? "Y" : "N";
+    printf "-" x $terminalWidth . "\n";
+    print wrap('', '', $descriptionFormatted) . "\n";
+
+    if ($checkVotingStatus) {
+      printf "-" x $terminalWidth . "\n\n";
+      printf "  # Account                                                            ETH                        DAO  Est Gas Voting Status\n";
+      printf "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
+      for (my $i = 0; $i < scalar keys %accounts; $i++) {
+        my $account = $accounts{$i};
+        if (!($account->{account} =~ /Total/)) {
+          my $estimatedGas;
+          my $votingStatus;
+          if ($account->{daos} > 0) {
+            $estimatedGas = checkProposalVoteStatus($account->{account}, $proposalId, 0);
+            $votingStatus = ($estimatedGas == $ESTIMATEGASMAXGAS) ? "Already voted" : "Not voted yet";
+          } else {
+            $estimatedGas = 0;
+            $votingStatus = "No DAOs";
+          }
+          printf "%3d %-42s %27s %26s %8d %s\n", $i, $account->{account}, $account->{ethers}, $account->{daos}, 
+            $estimatedGas, $votingStatus;
+        }
+      }
+      printf "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
+    }
+    printf "=" x $terminalWidth . "\n\n";
+  }
+  return 0;
+}
+
+
+# ------------------------------------------------------------------------------
+# Vote on a proposal
+# ------------------------------------------------------------------------------
+sub vote {
+  my $status = 0;
+  my ($votingAddress, $proposalId, $supportProposal, $force) = @_;
+  printf scalar localtime . " vote($votingAddress, $proposalId, $supportProposal, $force)\n"
+    if defined $verbose;
+  print "vote(address=$votingAddress, proposalId=$proposalId, support=$supportProposal, force=$force)\n";
+  my $estimatedGas = checkProposalVoteStatus($votingAddress, $proposalId, $supportProposal);
+  if ($estimatedGas == $ESTIMATEGASMAXGAS) {
+    print "You have already voted on proposal $proposalId or this account has a 0 DAO balance.\n";
+    if (!$force) {
+      $status = 2;
+    }
+  } else {
+    print "You have not voted on proposal $proposalId yet. Estimated gas usage $estimatedGas\n";
+  }
+
+  # Vote now
+  my $password = "";
+  if ($status == 0) {
+    print "Enter password for $votingAddress to vote: ";
+    system('stty', '-echo');
+    $password = <>;
+    system('stty', 'echo');
+    chomp $password;
+    print "\n";
+  }
+
+  if ($status == 0 && length($password) > 0) {
+    my $command = qq/
+var theDAOABIFragment = [{"constant":false,"inputs":[{"name":"_proposalID","type":"uint256"},{"name":"_supportsProposal","type":"bool"}],"name":"vote","outputs":[{"name":"_voteID","type":"uint256"}],"type":"function"}];
+var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
+var proposalId = $proposalId;
+var supportProposal = $supportProposal;
+personal.unlockAccount("$votingAddress", "$password", $UNLOCKACCOUNTSECONDS);
+var vote = theDAO.vote($proposalId, $supportProposal, {from: "$votingAddress", gas: $ESTIMATEDGASVOTING});
+console.log(vote);
+exit;
+/;
+    my $commandNoPassword = $command;
+    $commandNoPassword =~ s/unlockAccount(.*);/unlockAccount("$votingAddress", "********" , $UNLOCKACCOUNTSECONDS);/g;
+    printf scalar localtime . " Executing " . $commandNoPassword . "\n"
+      if defined $verbose;
+    my @output = `echo '$command' | $GETHBINARY attach`;
+    my $txId;
+    for my $line (@output) {
+      $line =~ s/unlockAccount(.*);/unlockAccount(*,*,2);/g;
+      printf scalar localtime . " " . $line
+        if defined $verbose;
+      if ($line =~ /account is locked/) {
+        printf "Account $votingAddress is locked. Incorrect password?\n";
+        $status = 2;
+      } elsif ($line =~ /^0x[0-9a-f]*$/) {
+        ($txId) = $line =~ /(0x[0-9a-f].*)/;
+      }
+    }     
+    if (defined $txId) {
+      printf "Transaction Id $txId\n";
+    }
+  }
+  return $status;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get the list of accounts from geth
+# ------------------------------------------------------------------------------
+sub getAccounts {
+  printf scalar localtime . " getAccounts()\n"
+    if defined $verbose;
+  my %result = ();
+  my $command = qq/
+var theDAOABIFragment = [{"type":"function","outputs":[{"type":"uint256","name":"balance"}],"name":"balanceOf","inputs":[{"type":"address","name":"_owner"}],"constant":true}];
+var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
+var i = 0;
+var totalEthers = 0;
+var totalDaos = 0;
+eth.accounts.forEach( function(e) {
+  var ethers = web3.fromWei(eth.getBalance(e), "ether");
+  var daos = theDAO.balanceOf(e)\/1e16;
+  totalEthers += parseFloat(ethers);
+  totalDaos += parseFloat(daos);
+  console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16));
+});
+console.log(i + "\\tTotal\\t" + totalEthers.toFixed(18) + "\\t" + totalDaos.toFixed(16));
+exit;
+/;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @output = `echo '$command' | $GETHBINARY attach`;
+  for my $line (@output) {
+    printf scalar localtime . " " . $line 
+      if defined $verbose;
+    if ($line =~ /\d+\t\S+\t\d+.*\t\d+/) {
+      my ($i, $account, $ethers, $daos) = $line =~ /(\d+)\t(\S+)\t(\d+.*)\t(\d+.*)/;
+      printf scalar localtime . " " . $i . " " . $account . " " . $ethers . " " . $daos . "\n"
+        if defined $verbose;
+      $result{$i}{account} = $account;
+      $result{$i}{ethers} = $ethers;
+      $result{$i}{daos} = $daos;
+    }
+  }
+  return %result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get the number of proposals from geth
+# ------------------------------------------------------------------------------
+sub getNumberOfProposals {
+  printf scalar localtime . " getNumberOfProposals()\n"
+    if defined $verbose;
+  my $result = 0;
+  my $command = qq/
+var theDAOABIFragment = [{"constant":true,"inputs":[],"name":"numberOfProposals","outputs":[{"name":"_numberOfProposals","type":"uint256"}],"type":"function"}];
+var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
+console.log("numberOfProposals\\t" + theDAO.numberOfProposals());
+exit;
+/;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @output = `echo '$command' | $GETHBINARY attach`;
+  for my $line (@output) {
+    printf scalar localtime . " " . $line 
+      if defined $verbose;
+    if ($line =~ /numberOfProposals/) { 
+      ($result) = $line =~ /numberOfProposals\t(\d+)/;
+    }
+  }
+  printf scalar localtime . " numberOfProposals: %d\n", $result 
+    if defined $verbose;
+  return $result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get the list of proposals from geth
+# ------------------------------------------------------------------------------
+sub getProposals {
+  my ($first, $last, $status, $split) = @_;
+  printf scalar localtime . " getProposals($first, $last, $status, $split)\n"
+    if defined $verbose;
+  my %result = ();
+  my $command = qq/
+var theDAOABIFragment = [{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"proposals","outputs":[{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"description","type":"string"},{"name":"votingDeadline","type":"uint256"},{"name":"open","type":"bool"},{"name":"proposalPassed","type":"bool"},{"name":"proposalHash","type":"bytes32"},{"name":"proposalDeposit","type":"uint256"},{"name":"newCurator","type":"bool"},{"name":"yea","type":"uint256"},{"name":"nay","type":"uint256"},{"name":"creator","type":"address"}],"type":"function"},{"constant":true,"inputs":[],"name":"minQuorumDivisor","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"type":"function","outputs":[{"type":"uint256","name":""}],"name":"totalSupply","inputs":[],"constant":true}];
+var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
+
+var minQuorum = theDAO.minQuorumDivisor();
+var totalSupply = theDAO.totalSupply();
+console.log("minQuorum " + minQuorum + "\\ttotalSupply " + totalSupply);
+var proposalId;
+for (proposalId = $first; proposalId <= $last; proposalId++) {
+  var proposal = theDAO.proposals(proposalId);
+  var open = proposal[4];
+  var newCurator = proposal[8];
+  var include = true;
+  var status = "$status";
+  var split = "$split";
+  if (status == "open" && !open) {
+    include = false;
+  } else if (status == "closed" && open) {
+    include = false;
+  }
+  if (split == "exclude" && newCurator) {
+    include = false;
+  } else if (split == "only" && !newCurator) {
+    include = false;
+  }
+  if (include) {
+    var recipient = proposal[0];  
+    var amount = web3.fromWei(proposal[1], "ether");
+    var description = proposal[2].replace("\\t", " ");
+    var votingDeadline = proposal[3];
+    var proposalPassed = proposal[5];
+    var proposalDeposit = web3.fromWei(proposal[7], "ether");
+    var yea = proposal[9] \/ 1e16;
+    var nay = proposal[10] \/ 1e16;
+    var creator = proposal[11];
+    var yeaAndNay = yea + nay;
+    var yeaPercent;
+    var nayPercent;
+    if (yeaAndNay > 0) {
+      yeaPercent = yea \/ yeaAndNay * 100;
+      nayPercent = nay \/ yeaAndNay * 100;
+    } else {
+      yeaPercent = 0;
+      nayPercent = 0;
+    }
+    var percent = yeaAndNay \/ totalSupply * 1e16 * 100;
+    var quorum = 100 \/ minQuorum;
+    console.log(proposalId + "\\t" + recipient + "\\t" + amount + "\\t" + description + "\\t" + 
+      votingDeadline + "\\t" + open + "\\t" + proposalPassed + "\\t" + proposalDeposit + "\\t" + 
+      newCurator + "\\t" + yea.toFixed(2) + "\\t" + nay.toFixed(2) + "\\t" + creator + "\\t" + yeaPercent.toFixed(2) + "\\t" + 
+      nayPercent.toFixed(2) + "\\t" + percent.toFixed(2) + "\\t" + quorum.toFixed(2));
+  }
+}
+
+exit;
+/;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @output = `echo '$command' | $GETHBINARY attach`;
+  for my $line (@output) {
+    printf scalar localtime . " " . $line 
+      if defined $verbose;
+    if ($line =~ /.*\t.*\t.*\t.*\t.*/) {
+      my ($proposalId, $recipient, $amount, $description, $votingDeadline, $open, $proposalPassed, $proposalDeposit,
+          $newCurator, $yea, $nay, $creator, $yeaPercent, $nayPercent, $percent, $quorum) = split /\t/, $line;
+      $result{$proposalId}{proposalId} = $proposalId;
+      $result{$proposalId}{recipient} = $recipient;
+      $result{$proposalId}{amount} = $amount;
+      $result{$proposalId}{description} = $description;
+      $result{$proposalId}{votingDeadline} = $votingDeadline;
+      $result{$proposalId}{open} = ($open eq "true");
+      $result{$proposalId}{proposalPassed} = ($proposalPassed eq "true");
+      $result{$proposalId}{proposalDeposit} = $proposalDeposit;
+      $result{$proposalId}{newCurator} = ($newCurator eq "true");
+      $result{$proposalId}{yea} = $yea;
+      $result{$proposalId}{nay} = $nay;
+      $result{$proposalId}{creator} = $creator;
+      $result{$proposalId}{yeaPercent} = $yeaPercent;
+      $result{$proposalId}{nayPercent} = $nayPercent;
+      $result{$proposalId}{percent} = $percent;
+      $result{$proposalId}{quorum} = $quorum;
+    }
+  }
+  return %result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Check whether an account has voted for a proposal
+#
+# Call data
+# > web3.sha3('vote(uint256,bool)').substr(0, 10)
+# "0xc9d27afe"
+#  0xc9d27afe00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000
+# ------------------------------------------------------------------------------
+sub checkProposalVoteStatus {
+  my ($account, $proposalId, $support) = @_;
+  printf scalar localtime . " checkProposalVoteStatus($account, $proposalId, $support)\n"
+    if defined $verbose;
+  
+  my $data = $VOTESIGNATUREHASH . sprintf("%064x", $proposalId) . sprintf("%064x", $support);
+  printf scalar localtime . " eth.estimateGas data " . $data . "\n"
+    if defined $verbose;
+
+  my $result = 0;
+  my $command = qq/
+var result = eth.estimateGas({from: "$account", to: "$THEDAOADDRESS", data: "$data", gas:$ESTIMATEGASMAXGAS});
+console.log("result\\t" + result);
+exit;
+/;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @output = `echo '$command' | $GETHBINARY attach`;
+  for my $line (@output) {
+    printf scalar localtime . " " . $line 
+      if defined $verbose;
+    if ($line =~ /result/) { 
+      ($result) = $line =~ /result\t(\S+)/;
+    }
+  }
+  printf scalar localtime . " result: %s\n", $result 
+    if defined $verbose;
+  return $result;
+}
+
