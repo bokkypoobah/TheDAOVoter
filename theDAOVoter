@@ -27,6 +27,7 @@ use Text::Wrap;
 # Adjust $GETHBINARY to point to geth if it is not on your search path
 my $GETHBINARY = "geth";
 my $THEDAOADDRESS = "0xBB9bc244D798123fDe783fCc1C72d3Bb8C189413";
+my $THEDAOFIRSTBLOCK = 1601755;
 my $DEFAULTFIRST = 1;
 my $DEFAULTSPLIT = "exclude";
 my $DEFAULTSTATUS = "open";
@@ -36,7 +37,7 @@ my $ESTIMATEDGASVOTING = 100000;
 my $UNLOCKACCOUNTSECONDS = 2;
 
 my $helptext = qq\
-The DAO Voter v 1.0000000000000001 02/06/2016.
+The DAO Voter v 1.0000000000000002 03/06/2016.
 
 Usage: $0 {command} [options]
 
@@ -54,7 +55,11 @@ The --listproposals command has additional optional options:
   --last={last proposal id}      Last proposal id. Default last proposal id.
   --split={exclude|include|only} Include splits. Default '$DEFAULTSPLIT'.
   --status={open|closed|both}    Proposal status. Default '$DEFAULTSTATUS'.
-  --checkvotingstatus            Check your voting status for the proposals. Default off.
+  --checkvotingstatus            Check your voting status for the proposals. Default off. This
+                                 check uses eth.estimateGas() API call to determine if you have
+                                 already voted.
+  --checkpastvotes               Retrieve your past voting history. Default off. Actual gas used
+                                 will be reported in the (Est)Gas column
 
 The --vote command has the additional options:
   --id={proposal id}             Proposal id.
@@ -65,7 +70,7 @@ The --vote command has the additional options:
 There following options can be use generally:
   --verbose                      Display what this script is doing.
 
-The following commands are the more frequently used ones:
+The more frequently used commands follow:
   This help
     $0
   List accounts
@@ -76,6 +81,8 @@ The following commands are the more frequently used ones:
     $0 --listproposals --checkvotingstatus
   List proposals #2 and check voting status for your accounts
     $0 --listproposals --id=2 --checkvotingstatus
+  List proposals #2 and check voting status and past votes for your accounts
+    $0 --listproposals --id=2 --checkvotingstatus --checkpastvotes
   Vote on proposal #2 from account #1, not supporting this vote
     $0 --vote --id=2 --account=1 --support=0
 
@@ -100,7 +107,6 @@ WARNING - This script uses the same method as the Ethereum Wallet (Mist) to unlo
 when you are sending your vote to the Ethereum blockchain. Make sure that you start geth without the 
 --rpc option when using geth with this script. See the following URL about the security issues with this keystore
 unlocking methodology:
-
 http://ethereum.stackexchange.com/questions/3887/how-to-reduce-the-chances-of-your-ethereum-wallet-getting-hacked
 
 
@@ -111,7 +117,7 @@ Enjoy, and vote well. BokkyPooBah 2016.
 Stopped\;
 
 my ($listAccounts, $listProposals, $vote);
-my ($id, $first, $last, $split, $proposalstatus, $format, $checkVotingStatus, $account, $support, $force);
+my ($id, $first, $last, $split, $proposalstatus, $format, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
 my ($help, $verbose);
 my $status = 0;
 
@@ -128,6 +134,7 @@ GetOptions(
   "split:s"           => \$split,
   "format:s"          => \$format,
   "checkVotingStatus" => \$checkVotingStatus,
+  "checkpastvotes"    => \$checkPastVotes,
   "account:s"         => \$account,
   "support:s"         => \$support,
   "force"             => \$force)
@@ -277,11 +284,16 @@ sub listProposals {
     if defined $verbose;
   
   my %accounts = ();
-  if ($checkVotingStatus) {
+  if ($checkVotingStatus || $checkPastVotes) {
     %accounts = getAccounts();
   }
 
   my %proposals = getProposals($first, $last, $status, $split);
+  my %pastVotes = ();
+  if ($checkPastVotes) {
+    %pastVotes = getPastVotes(\%accounts, \%proposals);
+  }
+
   foreach my $proposalId (sort { $a <=> $b } keys %proposals) {
     my $proposal = $proposals{$proposalId};
     my $recipient = $proposal->{recipient};
@@ -323,9 +335,9 @@ sub listProposals {
     printf "-" x $terminalWidth . "\n";
     print wrap('', '', $descriptionFormatted) . "\n";
 
-    if ($checkVotingStatus) {
+    if ($checkVotingStatus || $checkPastVotes) {
       printf "-" x $terminalWidth . "\n\n";
-      printf "  # Account                                                            ETH                        DAO  Est Gas Voting Status\n";
+      printf "  # Account                                                            ETH                        DAO (Est)Gas Voting Status\n";
       printf "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
       for (my $i = 0; $i < scalar keys %accounts; $i++) {
         my $account = $accounts{$i};
@@ -339,7 +351,14 @@ sub listProposals {
             $estimatedGas = 0;
             $votingStatus = "No DAOs";
           }
-          printf "%3d %-42s %27s %26s %8d %s\n", $i, $account->{account}, $account->{ethers}, $account->{daos}, 
+          if ($checkPastVotes) {
+            my ($position, $txHash) = getPastVotingStatus(\%pastVotes, $account->{account}, $proposalId);
+            if (defined $position) {
+              $estimatedGas = getGasUsed($txHash);
+              $votingStatus = $position ne "false" ? "Voted Yea" : "Voted Nay";
+            }
+          }
+          printf "%3d %-42s %27s %26s %8d %-13s\n", $i, $account->{account}, $account->{ethers}, $account->{daos}, 
             $estimatedGas, $votingStatus;
         }
       }
@@ -618,6 +637,143 @@ exit;
   }
   printf scalar localtime . " result: %s\n", $result 
     if defined $verbose;
+  return $result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get the list of accounts as a string
+# ------------------------------------------------------------------------------
+sub getAccountsAsString {
+  my %accounts = %{$_[0]};
+  my $result = "";
+  my $separator = "";
+
+  for (my $i = 0; $i < scalar keys %accounts; $i++) {
+    my $account = $accounts{$i};
+    if (!($account->{account} =~ /Total/)) {
+      $result .= $separator . "\"" . $account->{account} . "\"";
+      $separator = ",";
+    }
+  }
+  return "[" . $result . "]";
+}
+
+
+# ------------------------------------------------------------------------------
+# Get the list of proposalIDs as a string
+# ------------------------------------------------------------------------------
+sub getProposalIdsAsString {
+  my %proposals = %{$_[0]};
+  my $result = "";
+  my $separator = "";
+  foreach my $proposalId (sort { $a <=> $b } keys %proposals) {
+    $result .= $separator . $proposalId;
+    $separator = ",";
+  }
+  return "[" . $result . "]";
+}
+
+
+# ------------------------------------------------------------------------------
+# Get past votes
+# ------------------------------------------------------------------------------
+sub getPastVotes {
+  my %accounts = %{$_[0]};
+  my %proposals = %{$_[1]};
+
+  printf scalar localtime . " getPastVotes()\n"
+    if defined $verbose;
+
+  my $accountsAsString = getAccountsAsString(\%accounts);
+  print scalar localtime . " accountsAsString " . $accountsAsString . "\n"
+    if defined $verbose;
+
+  my $proposalIdsAsString = getProposalIdsAsString(\%proposals);
+  print scalar localtime . " proposalIdsAsString " . $proposalIdsAsString . "\n"
+    if defined $verbose;
+
+  my %result = ();
+  my $command = qq/
+var theDAOABIFragment = [{"anonymous":false,"inputs":[{"indexed":true,"name":"proposalID","type":"uint256"},{"indexed":false,"name":"position","type":"bool"},{"indexed":true,"name":"voter","type":"address"}],"name":"Voted","type":"event"}];
+var theDAO = web3.eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
+var theDAOVotedEvent = theDAO.Voted({voter: $accountsAsString, proposalID: $proposalIdsAsString}, {fromBlock: "$THEDAOFIRSTBLOCK", toBlock: "latest"});
+theDAOVotedEvent.watch(function(error, result){
+  console.log(JSON.stringify(result));
+});
+exit;
+/;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @output = `echo '$command' | $GETHBINARY attach`;
+  my $row = 0;
+  for my $line (@output) {
+    printf scalar localtime . " " . $line
+      if defined $verbose;
+    if ($line =~ /address.*args/) { 
+      my ($position, $proposalId, $voter, $blockNumber, $txHash) = 
+        $line =~ /position\":(.*),\"proposalID":\"(\d+)\",\"voter\":\"(.*)\"}.*blockNumber\":(\d+),\"event.*tionHash\":\"(.*)\",\"/;
+      print scalar localtime . " " . $position . "\t" . $proposalId . "\t" . $voter . "\t" . $blockNumber . "\t" . $txHash . "\n"
+        if defined $verbose;
+      $result{$row}{position} = $position;
+      $result{$row}{proposalId} = $proposalId;
+      $result{$row}{voter} = $voter;
+      $result{$row}{blockNumber} = $blockNumber;
+      $result{$row}{txHash} = $txHash;
+      $row++;
+    }
+  }
+  printf scalar localtime . " getPastVotes: %d\n", scalar keys %result 
+    if defined $verbose;
+  return %result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get past voting status
+# ------------------------------------------------------------------------------
+sub getPastVotingStatus {
+  my %pastVotes = %{$_[0]};
+  my $account = $_[1];
+  my $proposalId = $_[2];
+  my ($position, $txHash);
+  foreach my $row (keys %pastVotes) {
+    my $pastVote = $pastVotes{$row};
+    if ($pastVote->{proposalId} == $proposalId && $pastVote->{voter} eq $account) {
+      $position = $pastVote->{position};
+      $txHash = $pastVote->{txHash};
+      last;
+    }
+  }
+  return ($position, $txHash);
+}
+
+
+# ------------------------------------------------------------------------------
+# Get the gas used given the transaction id
+# ------------------------------------------------------------------------------
+sub getGasUsed {
+  my ($txHash) = @_;
+  printf scalar localtime . " getGasUsed($txHash)\n"
+    if defined $verbose;
+  my $result = 0;
+  my $command = qq/
+var gasUsed = eth.getTransactionReceipt("$txHash").gasUsed;
+console.log("gasUsed\\t" + gasUsed);
+exit;
+/;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @output = `echo '$command' | $GETHBINARY attach`;
+  for my $line (@output) {
+    printf scalar localtime . " " . $line
+      if defined $verbose;
+    if ($line =~ /gasUsed\t\d+/) {
+      ($result) = $line =~ /gasUsed\t(\d+)/;
+      printf scalar localtime . " " . $result . "\n"
+        if defined $verbose;
+    }
+  }
   return $result;
 }
 
