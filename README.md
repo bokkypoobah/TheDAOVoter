@@ -145,33 +145,33 @@ Run the script without any parameters to view the following help text:
     Stopped at /home/user/bin/theDAOVoter line 254.
     
 # The More Frequently Used Commands
-This help
+Help
 
-    `theDAOVoter`
+    theDAOVoter
 
 List accounts
 
-    `theDAOVoter` --listaccounts
+    theDAOVoter --listaccounts
 
 List proposals (excluding splits, open proposals only)
 
-    `theDAOVoter` --listproposals 
+    theDAOVoter --listproposals 
 
 List proposals (excluding splits, open proposals only) and check voting status for your accounts
 
-    `theDAOVoter` --listproposals --checkvotingstatus
+    theDAOVoter --listproposals --checkvotingstatus
 
 List proposals #2 and check voting status for your accounts
 
-    `theDAOVoter` --listproposals --id=2 --checkvotingstatus
+    theDAOVoter --listproposals --id=2 --checkvotingstatus
 
 List proposals #2 and check voting status and past votes for your accounts
 
-    `theDAOVoter` --listproposals --id=2 --checkvotingstatus --checkpastvotes
+    theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
 
 Vote on proposal #2 from account #1, not supporting this vote
 
-    `theDAOVoter` --vote --id=2 --account=1 --support=0
+    theDAOVoter --vote --id=2 --account=1 --support=0
 
 ## Go Ethereum (`geth`) JavaScript API Commands Used And TheDAO Functions Called
 
