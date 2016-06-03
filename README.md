@@ -1,7 +1,11 @@
 # TheDAOVoter
 Perl script to list and vote on The DAO proposals
 
-The script `theDAOVoter` is a small (~620 lines) Perl script that allows you to list The DAO proposals, list your accounts, and vote on The DAO proposals from your accounts. `theDAOVoter` will also list The DAO proposals and your accounts with the voting status on each proposal from your accounts.
+The script `theDAOVoter` is a small (~780 lines) Perl script that allows you to:
+* List The DAO proposals
+* List your accounts
+* List the DAO proposals with a listing of your accounts showing which accounts have already voted on each proposal. Past votes can also be listed along with the actual gas used.
+* Vote on The DAO proposals from your accounts.
 
 This script will run in Linux, should run on Mac OS/X and may run on Windows using one of the Perl distributions including Cygwin and Active State Perl.
 
@@ -21,7 +25,7 @@ You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this
       3 Total                                           333.333333333333333333       333.0000000000000000
 
     # List proposal #2 checking the voting status of this proposal from your accounts
-    user@Kumquat:~$ theDAOVoter --listproposals --id=2 --checkvotingstatus
+    user@Kumquat:~$ theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
     =========================================================================================================================================
     Proposal 2. OPEN until Sun Jun 12 03:18:37 2016
     Votes       Yea 2473115 (44.20%) Nay 3122385 (55.80%) Quorum 0.48% of 20%
@@ -36,7 +40,7 @@ You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this
 
       # Account                                                            ETH                        DAO  Est Gas Voting Status
     --- ------------------------------------------ --------------------------- -------------------------- -------- -------------
-      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.111111111111111111       111.0000000000000000  1000000 Already voted
+      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.111111111111111111       111.0000000000000000    56287 Voted Nay
       1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.222222222222222222       222.0000000000000000    70851 Not voted yet
     --- ------------------------------------------ --------------------------- -------------------------- -------- -------------
     =========================================================================================================================================
@@ -54,7 +58,7 @@ Run the script without any parameters to view the following help text:
 
     user@Kumquat:~$ theDAOVoter
     
-    The DAO Voter v 1.0000000000000001 02/06/2016.
+    The DAO Voter v 1.0000000000000002 03/06/2016.
     
     Usage: /home/user/bin/theDAOVoter {command} [options]
     
@@ -72,7 +76,11 @@ Run the script without any parameters to view the following help text:
       --last={last proposal id}      Last proposal id. Default last proposal id.
       --split={exclude|include|only} Include splits. Default 'exclude'.
       --status={open|closed|both}    Proposal status. Default 'open'.
-      --checkvotingstatus            Check your voting status for the proposals. Default off.
+      --checkvotingstatus            Check your voting status for the proposals. Default off. This
+                                     check uses eth.estimateGas() API call to determine if you have
+                                     already voted.
+      --checkpastvotes               Retrieve your past voting history. Default off. Actual gas used
+                                     will be reported in the (Est)Gas column
     
     The --vote command has the additional options:
       --id={proposal id}             Proposal id.
@@ -83,7 +91,7 @@ Run the script without any parameters to view the following help text:
     There following options can be use generally:
       --verbose                      Display what this script is doing.
     
-    The following commands are the more frequently used ones:
+    The more frequently used commands follow:
       This help
         /home/user/bin/theDAOVoter
       List accounts
@@ -94,6 +102,8 @@ Run the script without any parameters to view the following help text:
         /home/user/bin/theDAOVoter --listproposals --checkvotingstatus
       List proposals #2 and check voting status for your accounts
         /home/user/bin/theDAOVoter --listproposals --id=2 --checkvotingstatus
+      List proposals #2 and check voting status and past votes for your accounts
+        /home/user/bin/theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
       Vote on proposal #2 from account #1, not supporting this vote
         /home/user/bin/theDAOVoter --vote --id=2 --account=1 --support=0
     
@@ -118,7 +128,6 @@ Run the script without any parameters to view the following help text:
     when you are sending your vote to the Ethereum blockchain. Make sure that you start geth without the 
     --rpc option when using geth with this script. See the following URL about the security issues with this keystore
     unlocking methodology:
-    
     http://ethereum.stackexchange.com/questions/3887/how-to-reduce-the-chances-of-your-ethereum-wallet-getting-hacked
     
     
@@ -126,5 +135,5 @@ Run the script without any parameters to view the following help text:
     
     Enjoy, and vote well. BokkyPooBah 2016.
     
-    Stopped at /home/user/bin/theDAOVoter line 244.
+    Stopped at /home/user/bin/theDAOVoter line 254.
     
