@@ -1,4 +1,6 @@
 # TheDAOVoter
+
+## Description
 Perl script to list and vote on The DAO proposals
 
 The script `theDAOVoter` is a small (~780 lines) Perl script that allows you to:
@@ -9,10 +11,7 @@ The script `theDAOVoter` is a small (~780 lines) Perl script that allows you to:
 
 This script will run in Linux, should run on Mac OS/X and may run on Windows using one of the Perl distributions including Cygwin and Active State Perl.
 
-Before running this script, start the Go Ethereum node client using the command:
-
-    geth console
-
+## Sample
 You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
 
     # List all your accounts including the totals
@@ -50,9 +49,14 @@ You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this
     Enter password for 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb to vote: 
     Transaction Id 0x5555555555555555555555555555555555555555555555555555555555555555
 
+## Installation And Execution
 Download `theDAOVoter` into `$HOME/bin/theDAOVoter` and set the executable bit using
 
     chmod 700 $HOME/bin/theDAOVoter
+    
+Before running this script, start the Go Ethereum node client using the command:
+
+    geth console
     
 Run the script without any parameters to view the following help text:
 
@@ -93,19 +97,19 @@ Run the script without any parameters to view the following help text:
     
     The more frequently used commands follow:
       This help
-        /home/user/bin/theDAOVoter
+        theDAOVoter
       List accounts
-        /home/user/bin/theDAOVoter --listaccounts
+        theDAOVoter --listaccounts
       List proposals (excluding splits, open proposals only)
-        /home/user/bin/theDAOVoter --listproposals 
+        theDAOVoter --listproposals 
       List proposals (excluding splits, open proposals only) and check voting status for your accounts
-        /home/user/bin/theDAOVoter --listproposals --checkvotingstatus
+        theDAOVoter --listproposals --checkvotingstatus
       List proposals #2 and check voting status for your accounts
-        /home/user/bin/theDAOVoter --listproposals --id=2 --checkvotingstatus
+        theDAOVoter --listproposals --id=2 --checkvotingstatus
       List proposals #2 and check voting status and past votes for your accounts
-        /home/user/bin/theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
+        theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
       Vote on proposal #2 from account #1, not supporting this vote
-        /home/user/bin/theDAOVoter --vote --id=2 --account=1 --support=0
+        theDAOVoter --vote --id=2 --account=1 --support=0
     
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
@@ -137,3 +141,55 @@ Run the script without any parameters to view the following help text:
     
     Stopped at /home/user/bin/theDAOVoter line 254.
     
+# The More Frequently Used Commands
+This help
+
+    `theDAOVoter`
+
+List accounts
+
+    `theDAOVoter` --listaccounts
+
+List proposals (excluding splits, open proposals only)
+
+    `theDAOVoter` --listproposals 
+
+List proposals (excluding splits, open proposals only) and check voting status for your accounts
+
+    `theDAOVoter` --listproposals --checkvotingstatus
+
+List proposals #2 and check voting status for your accounts
+
+    `theDAOVoter` --listproposals --id=2 --checkvotingstatus
+
+List proposals #2 and check voting status and past votes for your accounts
+
+    `theDAOVoter` --listproposals --id=2 --checkvotingstatus --checkpastvotes
+
+Vote on proposal #2 from account #1, not supporting this vote
+
+    `theDAOVoter` --vote --id=2 --account=1 --support=0
+
+## Go Ethereum (`geth`) JavaScript API Commands Used And TheDAO Functions Called
+
+Listing Balance
+* eth.getBalance(...)
+* theDAO.balanceOf(...)
+
+Listing Proposals
+* theDAO.numberOfProposals()
+* theDAO.proposals(...)
+* theDAO.minQuorumDivisor()
+* theDAO.totalSupply()
+
+Check Voting Status
+* eth.estimateGas(...)
+
+Check Voting History
+* theDAO.Voted.watch(...)
+* eth.getTransactionReceipt(...) 
+
+Voting
+* personal.unlockAccount(...)
+* theDAO.vote(...)
+
