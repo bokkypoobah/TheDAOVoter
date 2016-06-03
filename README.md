@@ -11,6 +11,9 @@ The script `theDAOVoter` is a small (~780 lines) Perl script that allows you to:
 
 This script will run in Linux, should run on Mac OS/X and may run on Windows using one of the Perl distributions including Cygwin and Active State Perl.
 
+## How Does This Work
+This script calls the `geth` with the `attach` option, running the Go Ethereum JavaScript API to query the Ethereum blockchain. If you want to see the exact commands, add the option `--verbose` to `theDAOVoter`'s command line and all the executions will be revealed.
+
 ## Sample
 You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
 
@@ -192,4 +195,3 @@ Check Voting History
 Voting
 * personal.unlockAccount(...)
 * theDAO.vote(...)
-
