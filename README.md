@@ -22,10 +22,11 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 ### History
 * v1.0000000000000000 02/06/2016 First version
 * v1.0000000000000001 03/06/2016 Tidy
-* v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
+* v1.0000000000000002 03/06/2016 Added `--checkpastvotes` by retrieving The DAO Voted(...) events
 * v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
-* v1.0000000000000004 05/06/2016 --sumsplits to list the sum of splits
-                                 --account can now be used to specify an account not in your keystore
+* v1.0000000000000004 05/06/2016
+    * `--sumsplits` to list the sum of splits
+    * `--account` can now be used to specify an account not in your keystore
 
 <br />
 
