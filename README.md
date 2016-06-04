@@ -3,11 +3,12 @@
 ### Description
 Perl script to list and vote on The DAO proposals
 
-The script `theDAOVoter` is a small (~808 lines, 738 source lines) Perl script that allows you to:
+The script `theDAOVoter` is a small (903 lines, 828 source lines) Perl script that allows you to:
 * List The DAO proposals.
 * List your accounts, displaying whether The DAO transfers are blocked due to opened votes and expiry time.
 * List the DAO proposals with a listing of your accounts showing which accounts have already voted on each proposal. Past votes can also be listed along with the actual gas used.
 * Vote on The DAO proposals from your accounts.
+* List and sum the votes on split proposals.
 
 This script will run in Linux, should run on Mac OS/X and may run on Windows using one of the Perl distributions including Cygwin and Active State Perl.
 
@@ -23,6 +24,8 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 * v1.0000000000000001 03/06/2016 Tidy
 * v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
 * v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
+* v1.0000000000000004 05/06/2016 --sumsplits to list the sum of splits
+                                 --account can now be used to specify an account not in your keystore
 
 <br />
 
@@ -63,6 +66,21 @@ Following are some sample uses of this script with results. Add the parameter `-
     user@Kumquat:~$ theDAOVoter --vote --id=2 --account=1 --support=0
     Enter password for 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb to vote: 
     Transaction Id 0x5555555555555555555555555555555555555555555555555555555555555555
+    
+    # Check total The DOA proposals splitting
+    user@Kumquat:~$ theDAOVoter --sumsplits
+      Prop             Yea             Nay Address                                    Open   Description                             
+    ------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------
+         1       967598.22      4276278.60 0x13680fa2a60fd551894199f009cca20fb63a3e31 OPEN                                           
+         4         5279.34      4321941.58 0x3d5507b53d1613d8491a606ecf5c9268301095dd OPEN   split                                   
+         6            1.99       146492.30 0xbeb0b93c01297146782a5581370489a36b24deca OPEN   Original intent, non-interventionist cur
+        44        25000.00        44306.95 0x5a422fb07fc9270f5b310fc61f85b8e779cb29a2 OPEN   Hotdog cheap plot gongzho dao           
+    ------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------
+    SubTot            0.00            0.00                                            CLOSED
+    SubTot      5675420.80     87138029.50                                            OPEN
+    Total       5675420.80     87138029.50                                            Both
+    ------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------
+
 
 <br />
 
@@ -85,7 +103,7 @@ to
     
 Run the script without any parameters to view the following help text:
 
-    user@Kumquat:~$ theDAOVoter 
+    user@Kumquat:~$ theDAOVoter
     
     The DAO Voter v1.0000000000000003 03/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
     
@@ -94,12 +112,14 @@ Run the script without any parameters to view the following help text:
     Commands are:
       --listaccounts
       --listproposals
+      --sumsplits
       --vote
       --help
     
-    The --listaccounts command has no additional option.
+    The --listaccounts command has no additional optional parameters other than the general 
+    parameters listed below.
     
-    The --listproposals command has additional optional options:
+    The --listproposals command has additional optional parameters:
       --id={proposal id}             Proposal id.
       --first={first proposal id}    First proposal id. Default '1'.
       --last={last proposal id}      Last proposal id. Default last proposal id.
@@ -111,13 +131,15 @@ Run the script without any parameters to view the following help text:
       --checkpastvotes               Retrieve your past voting history. Default off. Actual gas used
                                      will be reported in the (Est)Gas column
     
+    The --sumsplits command has no additional option.
+    
     The --vote command has the additional options:
       --id={proposal id}             Proposal id.
-      --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...).
       --support={0|n|1|y}            Don't support (0 or n) or support (1 or y) proposal.
       --force                        Force a vote even when this tool reports that you have already voted.
     
     There following options can be use generally:
+      --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...)
       --verbose                      Display what this script is doing.
     
     HISTORY
@@ -125,6 +147,9 @@ Run the script without any parameters to view the following help text:
       v1.0000000000000001 03/06/2016 Tidy
       v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
       v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
+      v1.0000000000000003 05/06/2016 --sumsplits to list the sum of splits
+                                     --account can now be used to specify an account not in your keystore
+    
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
     or ActiveState Perl on Windows. 
@@ -162,16 +187,20 @@ Run the script without any parameters to view the following help text:
         theDAOVoter --listproposals --id=2 --checkvotingstatus
       List open proposals and check voting status and past votes for your accounts
         theDAOVoter --listproposals --checkvotingstatus --checkpastvotes
-      Vote on proposal #2 from account #1, not supporting this vote
+      View split proposal statistics
+        theDAOVoter --sumsplits
+      Vote on proposal #2 from account #1 in your keystore, not supporting this vote
         theDAOVoter --vote --id=2 --account=1 --support=0
+      Vote on proposal #43 from account 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, supporting this vote
+        theDAOVoter --vote --id=43 --account=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --support=1
     
     
     Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
     
     Enjoy, and vote well. BokkyPooBah 2016.
     
-    Stopped at theDAOVoter line 259.
-    
+    Stopped at theDAOVoter line 266.
+        
 <br />
 
 ### The More Frequently Used Commands
