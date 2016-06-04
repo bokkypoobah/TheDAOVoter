@@ -207,28 +207,32 @@ Vote on proposal #2 from account #1, not supporting this vote
 
 ### Go Ethereum (`geth`) JavaScript API Commands Used And TheDAO Functions Called
 
-Listing Balance
+**Listing Balance**
 * eth.getBalance(account)
 * theDAO.balanceOf(account)
 * theDAO.blocked(account)
 * theDAO.proposals(proposalId)
 
-Listing Proposals
+**Listing Proposals**
 * theDAO.numberOfProposals()
 * theDAO.proposals(proposalId)
 * theDAO.minQuorumDivisor()
 * theDAO.totalSupply()
 
-Check Voting Status
+**Check Voting Status**
 * eth.estimateGas(theDAO.vote(...))
 
-Check Voting History
+**Check Voting History**
 * theDAO.Voted.watch(...)
 * eth.getTransactionReceipt(...) 
 
-Voting
+**Voting**
 * personal.unlockAccount(...)
 * theDAO.vote(...)
+
+**References**
+* [Ethereum - Web3 JavaScript Ðapp API](https://github.com/ethereum/wiki/wiki/JavaScript-API)
+* [EtherScan.io - The DAO Source Code](http://etherscan.io/address/0xbb9bc244d798123fde783fcc1c72d3bb8c189413#code)
 
 <br />
 
