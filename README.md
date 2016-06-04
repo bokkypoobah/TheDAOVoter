@@ -1,6 +1,6 @@
 # TheDAOVoter
 
-## Description
+### Description
 Perl script to list and vote on The DAO proposals
 
 The script `theDAOVoter` is a small (~808 lines, 738 source lines) Perl script that allows you to:
@@ -11,16 +11,22 @@ The script `theDAOVoter` is a small (~808 lines, 738 source lines) Perl script t
 
 This script will run in Linux, should run on Mac OS/X and may run on Windows using one of the Perl distributions including Cygwin and Active State Perl.
 
-## How Does This Work
+<br />
+
+### How Does This Work
 This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `geth` program with the `attach` option, running the Go Ethereum JavaScript API to query the Ethereum blockchain. If you want to see the exact commands, add the option `--verbose` to `theDAOVoter`'s command line and all the executions will be revealed.
 
-## History
+<br />
+
+### History
 * v1.0000000000000000 02/06/2016 First version
 * v1.0000000000000001 03/06/2016 Tidy
 * v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
 * v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
 
-## Sample
+<br />
+
+### Sample
 Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
 
     # List all your accounts including the totals
@@ -58,7 +64,9 @@ Following are some sample uses of this script with results. Add the parameter `-
     Enter password for 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb to vote: 
     Transaction Id 0x5555555555555555555555555555555555555555555555555555555555555555
 
-## Installation And Execution
+<br />
+
+### Installation And Execution
 Download `theDAOVoter` into `$HOME/bin/theDAOVoter` and set the executable bit using
 
     chmod 700 $HOME/bin/theDAOVoter
@@ -164,7 +172,9 @@ Run the script without any parameters to view the following help text:
     
     Stopped at theDAOVoter line 259.
     
-# The More Frequently Used Commands
+<br />
+
+### The More Frequently Used Commands
 Help
 
     theDAOVoter
@@ -193,7 +203,9 @@ Vote on proposal #2 from account #1, not supporting this vote
 
     theDAOVoter --vote --id=2 --account=1 --support=0
 
-## Go Ethereum (`geth`) JavaScript API Commands Used And TheDAO Functions Called
+<br />
+
+### Go Ethereum (`geth`) JavaScript API Commands Used And TheDAO Functions Called
 
 Listing Balance
 * eth.getBalance(account)
@@ -218,7 +230,9 @@ Voting
 * personal.unlockAccount(...)
 * theDAO.vote(...)
 
-## Licence
+<br />
+
+### Licence
 The MIT License (MIT)
 
 Copyright (c) 2016 bokkypoobah
@@ -241,7 +255,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## And If You Like This
+<br />
+
+### And If You Like This
 Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
 
 
