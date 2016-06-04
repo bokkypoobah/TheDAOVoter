@@ -3,9 +3,9 @@
 ## Description
 Perl script to list and vote on The DAO proposals
 
-The script `theDAOVoter` is a small (~780 lines) Perl script that allows you to:
-* List The DAO proposals
-* List your accounts
+The script `theDAOVoter` is a small (~808 lines, 738 source lines) Perl script that allows you to:
+* List The DAO proposals.
+* List your accounts, displaying whether The DAO transfers are blocked due to opened votes and expiry time.
 * List the DAO proposals with a listing of your accounts showing which accounts have already voted on each proposal. Past votes can also be listed along with the actual gas used.
 * Vote on The DAO proposals from your accounts.
 
@@ -14,16 +14,22 @@ This script will run in Linux, should run on Mac OS/X and may run on Windows usi
 ## How Does This Work
 This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `geth` program with the `attach` option, running the Go Ethereum JavaScript API to query the Ethereum blockchain. If you want to see the exact commands, add the option `--verbose` to `theDAOVoter`'s command line and all the executions will be revealed.
 
+## History
+* v1.0000000000000000 02/06/2016 First version
+* v1.0000000000000001 03/06/2016 Tidy
+* v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
+* v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
+
 ## Sample
-You can then run `$HOME/bin/theDAOVoter`. Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
+Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
 
     # List all your accounts including the totals
     user@Kumquat:~$ theDAOVoter --listaccounts
-      # Account                                                            ETH                        DAO
-    --- ------------------------------------------ --------------------------- --------------------------
-      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.111111111111111111       111.0000000000000000
+      # Account                                                            ETH                        DAO The DAO transfer blocked by OPEN proposal?
+    --- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------
+      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.111111111111111111       111.0000000000000000 #2 OPEN until Sun Jun 12 03:18:37 2016
       1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.222222222222222222       222.0000000000000000
-    --- ------------------------------------------ --------------------------- --------------------------
+    --- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------
       3 Total                                           333.333333333333333333       333.0000000000000000
 
     # List proposal #2 checking the voting status of this proposal from your accounts
@@ -57,17 +63,25 @@ Download `theDAOVoter` into `$HOME/bin/theDAOVoter` and set the executable bit u
 
     chmod 700 $HOME/bin/theDAOVoter
     
-Before running this script, start the Go Ethereum node client using the command:
+Before running this script, start the Go Ethereum `geth` node client using the command:
 
     geth console
     
+If you are running the 64-bit Ethereum Wallet (Mist), you will find the `geth` executable in your Ethereum Wallet installation directory under the subdirectory `resources/node/geth/geth`. Change `$GETHBINARY` in the `theDAOVoter` script from
+
+    my $GETHBINARY = "geth";
+
+to
+
+    my $GETHBINARY = "{full geth executable file name including path}";
+    
 Run the script without any parameters to view the following help text:
 
-    user@Kumquat:~$ theDAOVoter
+    user@Kumquat:~$ theDAOVoter 
     
-    The DAO Voter v 1.0000000000000002 03/06/2016.
+    The DAO Voter v1.0000000000000003 03/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
     
-    Usage: /home/user/bin/theDAOVoter {command} [options]
+    Usage: theDAOVoter {command} [options]
     
     Commands are:
       --listaccounts
@@ -98,22 +112,11 @@ Run the script without any parameters to view the following help text:
     There following options can be use generally:
       --verbose                      Display what this script is doing.
     
-    The more frequently used commands follow:
-      This help
-        theDAOVoter
-      List accounts
-        theDAOVoter --listaccounts
-      List proposals (excluding splits, open proposals only)
-        theDAOVoter --listproposals 
-      List proposals (excluding splits, open proposals only) and check voting status for your accounts
-        theDAOVoter --listproposals --checkvotingstatus
-      List proposals #2 and check voting status for your accounts
-        theDAOVoter --listproposals --id=2 --checkvotingstatus
-      List proposals #2 and check voting status and past votes for your accounts
-        theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
-      Vote on proposal #2 from account #1, not supporting this vote
-        theDAOVoter --vote --id=2 --account=1 --support=0
-    
+    HISTORY
+      v1.0000000000000000 02/06/2016 First version
+      v1.0000000000000001 03/06/2016 Tidy
+      v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
+      v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
     or ActiveState Perl on Windows. 
@@ -138,18 +141,35 @@ Run the script without any parameters to view the following help text:
     http://ethereum.stackexchange.com/questions/3887/how-to-reduce-the-chances-of-your-ethereum-wallet-getting-hacked
     
     
+    The more frequently used commands follow:
+      This help
+        theDAOVoter
+      List accounts and display whether the account is blocked by votes in progress
+        theDAOVoter --listaccounts
+      List proposals (excluding splits, open proposals only)
+        theDAOVoter --listproposals 
+      List proposals (excluding splits, open proposals only) and check voting status for your accounts
+        theDAOVoter --listproposals --checkvotingstatus
+      List proposals #2 and check voting status for your accounts
+        theDAOVoter --listproposals --id=2 --checkvotingstatus
+      List open proposals and check voting status and past votes for your accounts
+        theDAOVoter --listproposals --checkvotingstatus --checkpastvotes
+      Vote on proposal #2 from account #1, not supporting this vote
+        theDAOVoter --vote --id=2 --account=1 --support=0
+    
+    
     Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
     
     Enjoy, and vote well. BokkyPooBah 2016.
     
-    Stopped at /home/user/bin/theDAOVoter line 254.
+    Stopped at theDAOVoter line 259.
     
 # The More Frequently Used Commands
 Help
 
     theDAOVoter
 
-List accounts
+List accounts and display whether the account is blocked by votes in progress
 
     theDAOVoter --listaccounts
 
@@ -165,9 +185,9 @@ List proposals #2 and check voting status for your accounts
 
     theDAOVoter --listproposals --id=2 --checkvotingstatus
 
-List proposals #2 and check voting status and past votes for your accounts
+List open proposals and check voting status and past votes for your accounts
 
-    theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
+    theDAOVoter --listproposals --checkvotingstatus --checkpastvotes
 
 Vote on proposal #2 from account #1, not supporting this vote
 
@@ -176,17 +196,19 @@ Vote on proposal #2 from account #1, not supporting this vote
 ## Go Ethereum (`geth`) JavaScript API Commands Used And TheDAO Functions Called
 
 Listing Balance
-* eth.getBalance(...)
-* theDAO.balanceOf(...)
+* eth.getBalance(account)
+* theDAO.balanceOf(account)
+* theDAO.blocked(account)
+* theDAO.proposals(proposalId)
 
 Listing Proposals
 * theDAO.numberOfProposals()
-* theDAO.proposals(...)
+* theDAO.proposals(proposalId)
 * theDAO.minQuorumDivisor()
 * theDAO.totalSupply()
 
 Check Voting Status
-* eth.estimateGas(...)
+* eth.estimateGas(theDAO.vote(...))
 
 Check Voting History
 * theDAO.Voted.watch(...)
