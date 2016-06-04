@@ -73,7 +73,8 @@ Following are some sample uses of this script with results. Add the parameter `-
       Prop             Yea             Nay Address                                    Open   Description                             
     ------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------
          1       967598.22      4276278.60 0x13680fa2a60fd551894199f009cca20fb63a3e31 OPEN                                           
-         4         5279.34      4321941.58 0x3d5507b53d1613d8491a606ecf5c9268301095dd OPEN   split                                   
+         4         5279.34      4321941.58 0x3d5507b53d1613d8491a606ecf5c9268301095dd OPEN   split                            
+         ...
          6            1.99       146492.30 0xbeb0b93c01297146782a5581370489a36b24deca OPEN   Original intent, non-interventionist cur
         44        25000.00        44306.95 0x5a422fb07fc9270f5b310fc61f85b8e779cb29a2 OPEN   Hotdog cheap plot gongzho dao           
     ------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------
