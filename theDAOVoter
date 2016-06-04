@@ -44,12 +44,14 @@ Usage: $0 {command} [options]
 Commands are:
   --listaccounts
   --listproposals
+  --sumsplits
   --vote
   --help
 
-The --listaccounts command has no additional option.
+The --listaccounts command has no additional optional parameters other than the general 
+parameters listed below.
 
-The --listproposals command has additional optional options:
+The --listproposals command has additional optional parameters:
   --id={proposal id}             Proposal id.
   --first={first proposal id}    First proposal id. Default '$DEFAULTFIRST'.
   --last={last proposal id}      Last proposal id. Default last proposal id.
@@ -61,13 +63,15 @@ The --listproposals command has additional optional options:
   --checkpastvotes               Retrieve your past voting history. Default off. Actual gas used
                                  will be reported in the (Est)Gas column
 
+The --sumsplits command has no additional option.
+
 The --vote command has the additional options:
   --id={proposal id}             Proposal id.
-  --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...).
   --support={0|n|1|y}            Don't support (0 or n) or support (1 or y) proposal.
   --force                        Force a vote even when this tool reports that you have already voted.
 
 There following options can be use generally:
+  --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...)
   --verbose                      Display what this script is doing.
 
 HISTORY
@@ -75,6 +79,9 @@ HISTORY
   v1.0000000000000001 03/06/2016 Tidy
   v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
   v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
+  v1.0000000000000003 05/06/2016 --sumsplits to list the sum of splits
+                                 --account can now be used to specify an account not in your keystore
+
 
 REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
 or ActiveState Perl on Windows. 
@@ -112,8 +119,12 @@ The more frequently used commands follow:
     $0 --listproposals --id=2 --checkvotingstatus
   List open proposals and check voting status and past votes for your accounts
     $0 --listproposals --checkvotingstatus --checkpastvotes
-  Vote on proposal #2 from account #1, not supporting this vote
+  View split proposal statistics
+    $0 --sumsplits
+  Vote on proposal #2 from account #1 in your keystore, not supporting this vote
     $0 --vote --id=2 --account=1 --support=0
+  Vote on proposal #43 from account 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, supporting this vote
+    $0 --vote --id=43 --account=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --support=1
 
 
 Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
@@ -122,7 +133,7 @@ Enjoy, and vote well. BokkyPooBah 2016.
 
 Stopped\;
 
-my ($listAccounts, $listProposals, $vote);
+my ($listAccounts, $listProposals, $sumSplits, $vote);
 my ($id, $first, $last, $split, $proposalStatus, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
 my ($help, $verbose);
 my $status = 0;
@@ -130,6 +141,7 @@ my $status = 0;
 GetOptions(
   "listaccounts"        => \$listAccounts,
   "listproposals"       => \$listProposals,
+  "sumsplits"           => \$sumSplits,
   "vote"                => \$vote,
   "help"                => \$help,
   "verbose"             => \$verbose,
@@ -151,7 +163,7 @@ $Text::Wrap::columns = $terminalWidth;
 if (defined $help) {
   $status = 1;
 } elsif (defined $listAccounts) {
-  $status = listAccounts();
+  $status = listAccounts($account);
 } elsif (defined $listProposals) {
   my $numberOfProposals = getNumberOfProposals();
   printf "Number of proposals: %d\n", $numberOfProposals
@@ -204,7 +216,7 @@ if (defined $help) {
     $split = $DEFAULTSPLIT;
   }
   if ($status == 0) {
-    $status = listProposals($proposalfrom, $proposalto, $proposalStatus, $split);
+    $status = listProposals($proposalfrom, $proposalto, $proposalStatus, $split, $account);
   }
 } elsif (defined $vote) {
   my $numberOfProposals = getNumberOfProposals();
@@ -216,20 +228,13 @@ if (defined $help) {
       $status = 2;
     }
   }
-  my %accounts = getAccounts();
+  my %accounts = getAccounts($account);
   my $votingAddress;
-  if (defined $account) {
-    if ($account =~ /^\d+$/) {
-      if ($account >= 0 && $account < scalar keys %accounts) {
-        $votingAddress = $accounts{$account}->{account};
-      }
-    } elsif ($account =~ /[0-9a-f]*/i) {
-      if ($account =~ /0x[0-9a-f]*/i && length($account) == 42) {
-        $votingAddress = $account;
-      } elsif ($account =~ /[0-9a-f]*/i && length($account) == 40) {
-        $votingAddress = "0x" . $account;
-      }
-    }
+  if (scalar keys %accounts == 1) {
+    printf "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\n";
+    $status = 2; 
+  } else {
+    $votingAddress = $accounts{0}->{account};
   }
   if (!defined $votingAddress) {
     printf "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\n";
@@ -252,6 +257,8 @@ if (defined $help) {
   if ($status == 0) {
     $status = vote($votingAddress, $id, $supportProposal, $force);
   }
+} elsif (defined $sumSplits) {
+  $status = sumSplits();
 } else {
   $status = 1;
 }
@@ -266,7 +273,9 @@ exit;
 # List accounts
 # ------------------------------------------------------------------------------
 sub listAccounts {
-  my %accounts = getAccounts();
+  my ($account) = @_;
+
+  my %accounts = getAccounts($account);
   my $separator = "--- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------\n";
   print "  # Account                                                            ETH                        DAO The DAO transfer blocked by OPEN proposal?\n";
   print $separator;
@@ -293,16 +302,16 @@ sub listAccounts {
 # List proposals
 # ------------------------------------------------------------------------------
 sub listProposals {
-  my ($first, $last, $status, $split) = @_;
-  printf scalar localtime . " listProposals($first, $last, $status, $split)\n"
+  my ($first, $last, $proposalStatus, $split, $account) = @_;
+  printf scalar localtime . " listProposals($first, $last, $proposalStatus, $split, " . (defined $account ? $account : "null") . ")\n"
     if defined $verbose;
   
   my %accounts = ();
   if ($checkVotingStatus || $checkPastVotes) {
-    %accounts = getAccounts();
+    %accounts = getAccounts($account);
   }
 
-  my %proposals = getProposals($first, $last, $status, $split);
+  my %proposals = getProposals($first, $last, $proposalStatus, $split);
   my %pastVotes = ();
   if ($checkPastVotes) {
     %pastVotes = getPastVotes(\%accounts, \%proposals);
@@ -383,6 +392,54 @@ sub listProposals {
   return 0;
 }
 
+# ------------------------------------------------------------------------------
+# Sum splits
+# ------------------------------------------------------------------------------
+sub sumSplits {
+  my $numberOfProposals = getNumberOfProposals();
+  printf "Number of proposals: %d\n", $numberOfProposals
+    if defined $verbose;
+  my $proposalStatus = "both";
+  my $split = "only";
+  my %proposals = getProposals(1, $numberOfProposals, $proposalStatus, $split);
+
+  print "  Prop             Yea             Nay Address                                    Open   Description                             \n";
+  print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
+  my ($totalYeaOpen, $totalNayOpen, $totalYeaClosed, $totalNayClosed) = (0, 0, 0, 0);
+  foreach my $proposalId (sort { $a <=> $b } keys %proposals) {
+    my $proposal = $proposals{$proposalId};
+    my $recipient = $proposal->{recipient};
+    my $amount = $proposal->{amount};
+    my $description = $proposal->{description};
+    my $descriptionFormatted = $description;
+    $descriptionFormatted =~ s/\\n/\n/g;
+    $descriptionFormatted =~ s/(\R)(?:\h*\R)+/$1$1/g;
+    my $votingDeadline = $proposal->{votingDeadline};
+    my $open = $proposal->{open} ? "OPEN" : "CLOSED";
+    my $proposalPassed = $proposal->{proposalPassed};
+    my $proposalDeposit = $proposal->{proposalDeposit};
+    my $newCurator = $proposal->{newCurator};
+    my $yea = $proposal->{yea};
+    my $nay = $proposal->{nay};
+    if ($proposal->{open}) {
+      $totalYeaOpen += $yea;
+      $totalNayOpen += $nay;
+    } else {
+      $totalYeaClosed += $yea;
+      $totalNayClosed += $nay;
+    }
+    my $creator = $proposal->{creator};
+    printf "%6d %15.2f %15.2f %s %-6s %-40s\n", $proposalId, $yea, $nay, $recipient, $open, substr($descriptionFormatted, 0, 40);
+
+    # printf "=" x $terminalWidth . "\n\n";
+  }
+  print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
+  printf "SubTot %15.2f %15.2f                                            CLOSED\n", $totalYeaClosed, $totalNayClosed;
+  printf "SubTot %15.2f %15.2f                                            OPEN\n", $totalYeaOpen, $totalNayOpen;
+  printf "Total  %15.2f %15.2f                                            Both\n", ($totalYeaClosed + $totalYeaOpen), ($totalNayOpen + $totalNayClosed);
+  print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
+  return 0;
+}
 
 # ------------------------------------------------------------------------------
 # Vote on a proposal
@@ -454,7 +511,10 @@ exit;
 # Get the list of accounts from geth
 # ------------------------------------------------------------------------------
 sub getAccounts {
-  printf scalar localtime . " getAccounts()\n"
+  my ($account) = @_;
+  $account = ""
+    unless defined $account;
+  printf scalar localtime . " getAccounts('$account')\n"
     if defined $verbose;
   my %result = ();
   my $command = qq/
@@ -463,12 +523,31 @@ var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
 var i = 0;
 var totalEthers = 0;
 var totalDaos = 0;
-eth.accounts.forEach( function(e) {
-  var ethers = web3.fromWei(eth.getBalance(e), "ether");
-  var daos = theDAO.balanceOf(e)\/1e16;
-  var blocked = theDAO.blocked(e);
-  var votingDeadline;
-  var open;
+var votingDeadline;
+var open;
+var account = "$account";
+if (account == "") {
+  eth.accounts.forEach( function(e) {
+    var ethers = web3.fromWei(eth.getBalance(e), "ether");
+    var daos = theDAO.balanceOf(e)\/1e16;
+    var blocked = theDAO.blocked(e);
+    if (blocked > 0) {
+      var proposal = theDAO.proposals(blocked);
+      votingDeadline = proposal[3];
+      open = proposal[4];
+    } else {
+      votingDeadline = 0;
+      open = false;
+    }
+    totalEthers += parseFloat(ethers);
+    totalDaos += parseFloat(daos);
+    console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
+  });
+} else if (account.length < 10) {
+  var acc = eth.accounts[account];
+  var ethers = web3.fromWei(eth.getBalance(acc), "ether");
+  var daos = theDAO.balanceOf(acc)\/1e16;
+  var blocked = theDAO.blocked(acc);
   if (blocked > 0) {
     var proposal = theDAO.proposals(blocked);
     votingDeadline = proposal[3];
@@ -479,8 +558,23 @@ eth.accounts.forEach( function(e) {
   }
   totalEthers += parseFloat(ethers);
   totalDaos += parseFloat(daos);
-  console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
-});
+  console.log(i++ + "\\t" + acc + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
+} else if (account.length > 40) {
+  var ethers = web3.fromWei(eth.getBalance(account), "ether");
+  var daos = theDAO.balanceOf(account)\/1e16;
+  var blocked = theDAO.blocked(account);
+  if (blocked > 0) {
+    var proposal = theDAO.proposals(blocked);
+    votingDeadline = proposal[3];
+    open = proposal[4];
+  } else {
+    votingDeadline = 0;
+    open = false;
+  }
+  totalEthers += parseFloat(ethers);
+  totalDaos += parseFloat(daos);
+  console.log(i++ + "\\t" + account + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
+}
 console.log(i + "\\tTotal\\t" + totalEthers.toFixed(18) + "\\t" + totalDaos.toFixed(16) + "\\t" + 0 + "\\t" + 0 + "\\t" + false);
 exit;
 /;
@@ -539,8 +633,8 @@ exit;
 # Get the list of proposals from geth
 # ------------------------------------------------------------------------------
 sub getProposals {
-  my ($first, $last, $status, $split) = @_;
-  printf scalar localtime . " getProposals($first, $last, $status, $split)\n"
+  my ($first, $last, $proposalStatus, $split) = @_;
+  printf scalar localtime . " getProposals($first, $last, $proposalStatus, $split)\n"
     if defined $verbose;
   my %result = ();
   my $command = qq/
@@ -555,17 +649,18 @@ for (proposalId = $first; proposalId <= $last; proposalId++) {
   var proposal = theDAO.proposals(proposalId);
   var open = proposal[4];
   var newCurator = proposal[8];
+  console.log(proposalId + " open=" + open + " newCurator=" + newCurator);
   var include = true;
-  var status = "$status";
+  var status = "$proposalStatus";
   var split = "$split";
-  if (status == "open" && !open) {
+  if (status == "open" && open == false) {
     include = false;
-  } else if (status == "closed" && open) {
+  } else if (status == "closed" && open == true) {
     include = false;
   }
-  if (split == "exclude" && newCurator) {
+  if (split == "exclude" && newCurator == true) {
     include = false;
-  } else if (split == "only" && !newCurator) {
+  } else if (split == "only" && newCurator == false) {
     include = false;
   }
   if (include) {
