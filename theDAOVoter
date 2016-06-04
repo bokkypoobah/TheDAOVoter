@@ -37,7 +37,7 @@ my $ESTIMATEDGASVOTING = 100000;
 my $UNLOCKACCOUNTSECONDS = 2;
 
 my $helptext = qq\
-The DAO Voter v 1.0000000000000002 03/06/2016.
+The DAO Voter v1.0000000000000003 03/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
 
 Usage: $0 {command} [options]
 
@@ -70,22 +70,11 @@ The --vote command has the additional options:
 There following options can be use generally:
   --verbose                      Display what this script is doing.
 
-The more frequently used commands follow:
-  This help
-    $0
-  List accounts
-    $0 --listaccounts
-  List proposals (excluding splits, open proposals only)
-    $0 --listproposals 
-  List proposals (excluding splits, open proposals only) and check voting status for your accounts
-    $0 --listproposals --checkvotingstatus
-  List proposals #2 and check voting status for your accounts
-    $0 --listproposals --id=2 --checkvotingstatus
-  List proposals #2 and check voting status and past votes for your accounts
-    $0 --listproposals --id=2 --checkvotingstatus --checkpastvotes
-  Vote on proposal #2 from account #1, not supporting this vote
-    $0 --vote --id=2 --account=1 --support=0
-
+HISTORY
+  v1.0000000000000000 02/06/2016 First version
+  v1.0000000000000001 03/06/2016 Tidy
+  v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
+  v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
 
 REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
 or ActiveState Perl on Windows. 
@@ -110,6 +99,23 @@ unlocking methodology:
 http://ethereum.stackexchange.com/questions/3887/how-to-reduce-the-chances-of-your-ethereum-wallet-getting-hacked
 
 
+The more frequently used commands follow:
+  This help
+    $0
+  List accounts and display whether the account is blocked by votes in progress
+    $0 --listaccounts
+  List proposals (excluding splits, open proposals only)
+    $0 --listproposals 
+  List proposals (excluding splits, open proposals only) and check voting status for your accounts
+    $0 --listproposals --checkvotingstatus
+  List proposals #2 and check voting status for your accounts
+    $0 --listproposals --id=2 --checkvotingstatus
+  List open proposals and check voting status and past votes for your accounts
+    $0 --listproposals --checkvotingstatus --checkpastvotes
+  Vote on proposal #2 from account #1, not supporting this vote
+    $0 --vote --id=2 --account=1 --support=0
+
+
 Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
 
 Enjoy, and vote well. BokkyPooBah 2016.
@@ -117,27 +123,26 @@ Enjoy, and vote well. BokkyPooBah 2016.
 Stopped\;
 
 my ($listAccounts, $listProposals, $vote);
-my ($id, $first, $last, $split, $proposalstatus, $format, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
+my ($id, $first, $last, $split, $proposalStatus, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
 my ($help, $verbose);
 my $status = 0;
 
 GetOptions(
-  "listaccounts"      => \$listAccounts,
-  "listproposals"     => \$listProposals,
-  "vote"              => \$vote,
-  "help"              => \$help,
-  "verbose"           => \$verbose,
-  "id:n"              => \$id,
-  "first:n"           => \$first,
-  "last:n"            => \$last,
-  "status:s"          => \$proposalstatus,
-  "split:s"           => \$split,
-  "format:s"          => \$format,
-  "checkVotingStatus" => \$checkVotingStatus,
-  "checkpastvotes"    => \$checkPastVotes,
-  "account:s"         => \$account,
-  "support:s"         => \$support,
-  "force"             => \$force)
+  "listaccounts"        => \$listAccounts,
+  "listproposals"       => \$listProposals,
+  "vote"                => \$vote,
+  "help"                => \$help,
+  "verbose"             => \$verbose,
+  "id:n"                => \$id,
+  "first:n"             => \$first,
+  "last:n"              => \$last,
+  "status:s"            => \$proposalStatus,
+  "split:s"             => \$split,
+  "checkVotingStatus"   => \$checkVotingStatus,
+  "checkpastvotes"      => \$checkPastVotes,
+  "account:s"           => \$account,
+  "support:s"           => \$support,
+  "force"               => \$force)
 or die $helptext;
 
 my ($terminalWidth) = `stty size` =~ /\d+\s+(\d+)/;
@@ -186,11 +191,11 @@ if (defined $help) {
       $status = 2;
     }
   }
-  if (defined $proposalstatus && !($proposalstatus eq "open" || $proposalstatus eq "closed" || $proposalstatus eq "both")) {
+  if (defined $proposalStatus && !($proposalStatus eq "open" || $proposalStatus eq "closed" || $proposalStatus eq "both")) {
     printf "Error: --status must be 'open', 'closed' or 'both'\n";
     $status = 2;
-  } elsif (!defined $proposalstatus) {
-    $proposalstatus = $DEFAULTSTATUS;
+  } elsif (!defined $proposalStatus) {
+    $proposalStatus = $DEFAULTSTATUS;
   }
   if (defined $split && !($split eq "exclude" || $split eq "include" || $split eq "only")) {
     printf "Error: --split must be 'exclude', 'include' or 'only'\n";
@@ -199,7 +204,7 @@ if (defined $help) {
     $split = $DEFAULTSPLIT;
   }
   if ($status == 0) {
-    $status = listProposals($proposalfrom, $proposalto, $proposalstatus, $split);
+    $status = listProposals($proposalfrom, $proposalto, $proposalStatus, $split);
   }
 } elsif (defined $vote) {
   my $numberOfProposals = getNumberOfProposals();
@@ -262,14 +267,23 @@ exit;
 # ------------------------------------------------------------------------------
 sub listAccounts {
   my %accounts = getAccounts();
-  printf "  # Account                                                            ETH                        DAO\n";
-  printf "--- ------------------------------------------ --------------------------- --------------------------\n";
+  my $separator = "--- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------\n";
+  print "  # Account                                                            ETH                        DAO The DAO transfer blocked by OPEN proposal?\n";
+  print $separator;
   for (my $i = 0; $i < scalar keys %accounts; $i++) {
     my $account = $accounts{$i};
     if ($account->{account} =~ /Total/) {
-      printf "--- ------------------------------------------ --------------------------- --------------------------\n";
+      print $separator;
+      printf "%3d %-42s %27s %26s\n", $i, $account->{account}, $account->{ethers}, $account->{daos};
+    } else {
+      my $blockString;
+      if ($account->{blocked} != 0 && $account->{open} eq "true") {
+        $blockString = "#" . $account->{blocked} . " OPEN until " . scalar localtime $account->{votingDeadline};
+      } else {
+        $blockString = "";
+      }
+      printf "%3d %-42s %27s %26s %s\n", $i, $account->{account}, $account->{ethers}, $account->{daos}, $blockString;
     }
-    printf "%3d %-42s %27s %26s\n", $i, $account->{account}, $account->{ethers}, $account->{daos};
   }
   return 0;
 }
@@ -280,7 +294,7 @@ sub listAccounts {
 # ------------------------------------------------------------------------------
 sub listProposals {
   my ($first, $last, $status, $split) = @_;
-  printf scalar localtime . " listProposals($first, $last, $status, $split, $format)\n"
+  printf scalar localtime . " listProposals($first, $last, $status, $split)\n"
     if defined $verbose;
   
   my %accounts = ();
@@ -444,7 +458,7 @@ sub getAccounts {
     if defined $verbose;
   my %result = ();
   my $command = qq/
-var theDAOABIFragment = [{"type":"function","outputs":[{"type":"uint256","name":"balance"}],"name":"balanceOf","inputs":[{"type":"address","name":"_owner"}],"constant":true}];
+var theDAOABIFragment = [{"type":"function","outputs":[{"type":"uint256","name":"balance"}],"name":"balanceOf","inputs":[{"type":"address","name":"_owner"}],"constant":true},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"blocked","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"proposals","outputs":[{"name":"recipient","type":"address"},{"name":"amount","type":"uint256"},{"name":"description","type":"string"},{"name":"votingDeadline","type":"uint256"},{"name":"open","type":"bool"},{"name":"proposalPassed","type":"bool"},{"name":"proposalHash","type":"bytes32"},{"name":"proposalDeposit","type":"uint256"},{"name":"newCurator","type":"bool"},{"name":"yea","type":"uint256"},{"name":"nay","type":"uint256"},{"name":"creator","type":"address"}],"type":"function"}];
 var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
 var i = 0;
 var totalEthers = 0;
@@ -452,11 +466,22 @@ var totalDaos = 0;
 eth.accounts.forEach( function(e) {
   var ethers = web3.fromWei(eth.getBalance(e), "ether");
   var daos = theDAO.balanceOf(e)\/1e16;
+  var blocked = theDAO.blocked(e);
+  var votingDeadline;
+  var open;
+  if (blocked > 0) {
+    var proposal = theDAO.proposals(blocked);
+    votingDeadline = proposal[3];
+    open = proposal[4];
+  } else {
+    votingDeadline = 0;
+    open = false;
+  }
   totalEthers += parseFloat(ethers);
   totalDaos += parseFloat(daos);
-  console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16));
+  console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
 });
-console.log(i + "\\tTotal\\t" + totalEthers.toFixed(18) + "\\t" + totalDaos.toFixed(16));
+console.log(i + "\\tTotal\\t" + totalEthers.toFixed(18) + "\\t" + totalDaos.toFixed(16) + "\\t" + 0 + "\\t" + 0 + "\\t" + false);
 exit;
 /;
   printf scalar localtime . " Executing " . $command . "\n"
@@ -466,12 +491,15 @@ exit;
     printf scalar localtime . " " . $line 
       if defined $verbose;
     if ($line =~ /\d+\t\S+\t\d+.*\t\d+/) {
-      my ($i, $account, $ethers, $daos) = $line =~ /(\d+)\t(\S+)\t(\d+.*)\t(\d+.*)/;
-      printf scalar localtime . " " . $i . " " . $account . " " . $ethers . " " . $daos . "\n"
+      my ($i, $account, $ethers, $daos, $blocked, $votingDeadline, $open) = $line =~ /(\d+)\t(\S+)\t(\d+.*)\t(\d+.*)\t(\S+)\t(\S+)\t(\S+)/;
+      printf scalar localtime . " " . $i . " " . $account . " " . $ethers . " " . $daos . " " . $blocked . " " . $votingDeadline . " " . $open . "\n"
         if defined $verbose;
       $result{$i}{account} = $account;
       $result{$i}{ethers} = $ethers;
       $result{$i}{daos} = $daos;
+      $result{$i}{blocked} = $blocked;
+      $result{$i}{votingDeadline} = $votingDeadline;
+      $result{$i}{open} = $open;
     }
   }
   return %result;
