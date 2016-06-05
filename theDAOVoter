@@ -35,9 +35,11 @@ my $VOTESIGNATUREHASH = "0xc9d27afe"; # web3.sha3('vote(uint256,bool)').substr(0
 my $ESTIMATEGASMAXGAS = 1000000;
 my $ESTIMATEDGASVOTING = 100000;
 my $UNLOCKACCOUNTSECONDS = 2;
+my $DEFAULTETHDECIMALPLACES = 18;
+my $DEFAULTDAODECIMALPLACES = 16;
 
 my $helptext = qq\
-The DAO Voter v1.0000000000000003 03/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+The DAO Voter v1.0000000000000005 05/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
 
 Usage: $0 {command} [options]
 
@@ -52,35 +54,37 @@ The --listaccounts command has no additional optional parameters other than the 
 parameters listed below.
 
 The --listproposals command has additional optional parameters:
-  --id={proposal id}             Proposal id.
-  --first={first proposal id}    First proposal id. Default '$DEFAULTFIRST'.
-  --last={last proposal id}      Last proposal id. Default last proposal id.
-  --split={exclude|include|only} Include splits. Default '$DEFAULTSPLIT'.
-  --status={open|closed|both}    Proposal status. Default '$DEFAULTSTATUS'.
-  --checkvotingstatus            Check your voting status for the proposals. Default off. This
-                                 check uses eth.estimateGas() API call to determine if you have
-                                 already voted.
-  --checkpastvotes               Retrieve your past voting history. Default off. Actual gas used
-                                 will be reported in the (Est)Gas column
+  --id={proposal id}               Proposal id.
+  --first={first proposal id}      First proposal id. Default '$DEFAULTFIRST'.
+  --last={last proposal id}        Last proposal id. Default last proposal id.
+  --split={exclude|include|only}   Include splits. Default '$DEFAULTSPLIT'.
+  --status={open|closed|both}      Proposal status. Default '$DEFAULTSTATUS'.
+  --checkvotingstatus              Check your voting status for the proposals. Default off. This
+                                   check uses eth.estimateGas() API call to determine if you have
+                                   already voted.
+  --checkpastvotes                 Retrieve your past voting history. Default off. Actual gas used
+                                   will be reported in the (Est)Gas column
 
 The --sumsplits command has no additional option.
 
 The --vote command has the additional options:
-  --id={proposal id}             Proposal id.
-  --support={0|n|1|y}            Don't support (0 or n) or support (1 or y) proposal.
-  --force                        Force a vote even when this tool reports that you have already voted.
+  --id={proposal id}               Proposal id.
+  --support={0|n|1|y}              Don't support (0 or n) or support (1 or y) proposal.
+  --force                          Force a vote even when this tool reports that you have already voted.
 
 There following options can be use generally:
-  --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...)
-  --verbose                      Display what this script is doing.
+  --account={account or id}        Use account number (e.g. 1) or address (e.g. 0xabc...)
+  --decimalplaces={decimal places) Number of decimal places. Default ETH '$DEFAULTETHDECIMALPLACES', DAO '$DEFAULTDAODECIMALPLACES'.
+  --verbose                        Display what this script is doing.
 
 HISTORY
   v1.0000000000000000 02/06/2016 First version
   v1.0000000000000001 03/06/2016 Tidy
   v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
   v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
-  v1.0000000000000003 05/06/2016 --sumsplits to list the sum of splits
+  v1.0000000000000004 05/06/2016 --sumsplits to list the sum of splits
                                  --account can now be used to specify an account not in your keystore
+  v1.0000000000000005 05/06/2016 --decimalplaces
 
 
 REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
@@ -135,7 +139,7 @@ Stopped\;
 
 my ($listAccounts, $listProposals, $sumSplits, $vote);
 my ($id, $first, $last, $split, $proposalStatus, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
-my ($help, $verbose);
+my ($help, $verbose, $decimalPlaces);
 my $status = 0;
 
 GetOptions(
@@ -145,6 +149,7 @@ GetOptions(
   "vote"                => \$vote,
   "help"                => \$help,
   "verbose"             => \$verbose,
+  "decimalPlaces:n"     => \$decimalPlaces,
   "id:n"                => \$id,
   "first:n"             => \$first,
   "last:n"              => \$last,
@@ -159,6 +164,22 @@ or die $helptext;
 
 my ($terminalWidth) = `stty size` =~ /\d+\s+(\d+)/;
 $Text::Wrap::columns = $terminalWidth;
+
+my ($ethDecimalPlaces, $ethNumberLength, $daoDecimalPlaces, $daoNumberLength);
+if (defined $decimalPlaces) {
+  if ($decimalPlaces < 0 || $decimalPlaces > 18) {
+    printf "Error: --decimalPlaces must be >= 0 and <= 18\n";
+    $status = 2;
+    exit;
+  }
+  $ethDecimalPlaces = $decimalPlaces;
+  $daoDecimalPlaces = $decimalPlaces;
+} else {
+  $ethDecimalPlaces = $DEFAULTETHDECIMALPLACES;
+  $daoDecimalPlaces = $DEFAULTDAODECIMALPLACES;
+}
+$ethNumberLength = $ethDecimalPlaces + 9 + ($ethDecimalPlaces == 0 ? 1 : 0);
+$daoNumberLength = $daoDecimalPlaces + 10 + ($daoDecimalPlaces == 0 ? 1 : 0);
 
 if (defined $help) {
   $status = 1;
@@ -276,14 +297,16 @@ sub listAccounts {
   my ($account) = @_;
 
   my %accounts = getAccounts($account);
-  my $separator = "--- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------\n";
-  print "  # Account                                                            ETH                        DAO The DAO transfer blocked by OPEN proposal?\n";
+  print "  # Account                                 " . " " x $ethNumberLength . "ETH" . 
+    " " x ($daoNumberLength - 2) . "DAO The DAO transfer blocked by OPEN proposal?\n";
+  my $separator = "--- ------------------------------------------ " . "-" x $ethNumberLength . 
+    " " . "-" x $daoNumberLength . " ------------------------------------------\n";
   print $separator;
   for (my $i = 0; $i < scalar keys %accounts; $i++) {
     my $account = $accounts{$i};
     if ($account->{account} =~ /Total/) {
       print $separator;
-      printf "%3d %-42s %27s %26s\n", $i, $account->{account}, $account->{ethers}, $account->{daos};
+      printf "%3d %-42s %*s %*s\n", $i, $account->{account}, $ethNumberLength, $account->{ethers}, $daoNumberLength, $account->{daos};
     } else {
       my $blockString;
       if ($account->{blocked} != 0 && $account->{open} eq "true") {
@@ -291,7 +314,7 @@ sub listAccounts {
       } else {
         $blockString = "";
       }
-      printf "%3d %-42s %27s %26s %s\n", $i, $account->{account}, $account->{ethers}, $account->{daos}, $blockString;
+      printf "%3d %-42s %*s %*s %s\n", $i, $account->{account}, $ethNumberLength, $account->{ethers}, $daoNumberLength, $account->{daos}, $blockString;
     }
   }
   return 0;
@@ -359,9 +382,18 @@ sub listProposals {
     print wrap('', '', $descriptionFormatted) . "\n";
 
     if ($checkVotingStatus || $checkPastVotes) {
-      printf "-" x $terminalWidth . "\n\n";
-      printf "  # Account                                                            ETH                        DAO (Est)Gas Voting Status\n";
-      printf "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
+      print "-" x $terminalWidth . "\n\n";
+
+      print "  # Account                                 " . " " x $ethNumberLength . "ETH" . 
+        " " x ($daoNumberLength - 2) . "DAO (Est)Gas Voting Status\n";
+      my $separator = "--- ------------------------------------------ " . "-" x $ethNumberLength . 
+        " " . "-" x $daoNumberLength . " -------- -------------\n";
+      print $separator;
+
+
+      # print "  # Account                                                            ETH                        DAO (Est)Gas Voting Status\n";
+      # print "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
+
       for (my $i = 0; $i < scalar keys %accounts; $i++) {
         my $account = $accounts{$i};
         if (!($account->{account} =~ /Total/)) {
@@ -381,13 +413,14 @@ sub listProposals {
               $votingStatus = $position ne "false" ? "Voted Yea" : "Voted Nay";
             }
           }
-          printf "%3d %-42s %27s %26s %8d %-13s\n", $i, $account->{account}, $account->{ethers}, $account->{daos}, 
-            $estimatedGas, $votingStatus;
+          printf "%3d %-42s %*s %*s %8d %-13s\n", $i, $account->{account}, $ethNumberLength, $account->{ethers}, 
+            $daoNumberLength, $account->{daos}, $estimatedGas, $votingStatus;
         }
       }
-      printf "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
+      # print "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
+      print $separator;
     }
-    printf "=" x $terminalWidth . "\n\n";
+    print "=" x $terminalWidth . "\n\n";
   }
   return 0;
 }
@@ -403,7 +436,7 @@ sub sumSplits {
   my $split = "only";
   my %proposals = getProposals(1, $numberOfProposals, $proposalStatus, $split);
 
-  print "  Prop             Yea             Nay Address                                    Open   Description                             \n";
+  print "  Prop             Yea             Nay Recipient                                  Open   Description                             \n";
   print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
   my ($totalYeaOpen, $totalNayOpen, $totalYeaClosed, $totalNayClosed) = (0, 0, 0, 0);
   foreach my $proposalId (sort { $a <=> $b } keys %proposals) {
@@ -541,7 +574,7 @@ if (account == "") {
     }
     totalEthers += parseFloat(ethers);
     totalDaos += parseFloat(daos);
-    console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
+    console.log(i++ + "\\t" + e + "\\t" + ethers.toFixed($ethDecimalPlaces) + "\\t" + daos.toFixed($daoDecimalPlaces) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
   });
 } else if (account.length < 10) {
   var acc = eth.accounts[account];
@@ -558,7 +591,7 @@ if (account == "") {
   }
   totalEthers += parseFloat(ethers);
   totalDaos += parseFloat(daos);
-  console.log(i++ + "\\t" + acc + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
+  console.log(i++ + "\\t" + acc + "\\t" + ethers.toFixed($ethDecimalPlaces) + "\\t" + daos.toFixed($daoDecimalPlaces) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
 } else if (account.length > 40) {
   var ethers = web3.fromWei(eth.getBalance(account), "ether");
   var daos = theDAO.balanceOf(account)\/1e16;
@@ -573,9 +606,9 @@ if (account == "") {
   }
   totalEthers += parseFloat(ethers);
   totalDaos += parseFloat(daos);
-  console.log(i++ + "\\t" + account + "\\t" + ethers.toFixed(18) + "\\t" + daos.toFixed(16) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
+  console.log(i++ + "\\t" + account + "\\t" + ethers.toFixed($ethDecimalPlaces) + "\\t" + daos.toFixed($daoDecimalPlaces) + "\\t" + blocked + "\\t" + votingDeadline + "\\t" + open);
 }
-console.log(i + "\\tTotal\\t" + totalEthers.toFixed(18) + "\\t" + totalDaos.toFixed(16) + "\\t" + 0 + "\\t" + 0 + "\\t" + false);
+console.log(i + "\\tTotal\\t" + totalEthers.toFixed($ethDecimalPlaces) + "\\t" + totalDaos.toFixed($daoDecimalPlaces) + "\\t" + 0 + "\\t" + 0 + "\\t" + false);
 exit;
 /;
   printf scalar localtime . " Executing " . $command . "\n"
