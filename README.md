@@ -36,16 +36,16 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 Following are some sample uses of this script with results. Add the parameter `--verbose` if you want to see exactly what `theDAOVoter` is doing.
 
     # List all your accounts including the totals
-    user@Kumquat:~$ theDAOVoter --listaccounts
-      # Account                                                            ETH                        DAO The DAO transfer blocked by OPEN proposal?
-    --- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------
-      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.111111111111111111       111.0000000000000000 #2 OPEN until Sun Jun 12 03:18:37 2016
-      1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.222222222222222222       222.0000000000000000
-    --- ------------------------------------------ --------------------------- -------------------------- ------------------------------------------
-      3 Total                                           333.333333333333333333       333.0000000000000000
+    user@Kumquat:~$ theDAOVoter --listaccounts --decimalplaces=2
+      # Account                                            ETH          DAO The DAO transfer blocked by OPEN proposal?
+    --- ------------------------------------------ ----------- ------------ ------------------------------------------
+      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.11       111.00 #2 OPEN until Sun Jun 12 03:18:37 2016
+      1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.22       222.00
+    --- ------------------------------------------ ----------- ------------ ------------------------------------------
+      3 Total                                           333.33       333.00
 
     # List proposal #2 checking the voting status of this proposal from your accounts
-    user@Kumquat:~$ theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes
+    user@Kumquat:~$ theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes --decimalplaces=2
     =========================================================================================================================================
     Proposal 2. OPEN until Sun Jun 12 03:18:37 2016
     Votes       Yea 2473115 (44.20%) Nay 3122385 (55.80%) Quorum 0.48% of 20%
@@ -54,16 +54,16 @@ Following are some sample uses of this script with results. Add the parameter `-
     Deposit     2 ETH
     Amount      0 ETH
     New curator N
-    -----------------------------------------------------------------------------------------------------------------------------------------
+    ----------------------------------------------------------------------------------------------
     Do you believe in god?
-    -----------------------------------------------------------------------------------------------------------------------------------------
+    ----------------------------------------------------------------------------------------------
 
-      # Account                                                            ETH                        DAO  Est Gas Voting Status
-    --- ------------------------------------------ --------------------------- -------------------------- -------- -------------
-      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.111111111111111111       111.0000000000000000    56287 Voted Nay
-      1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.222222222222222222       222.0000000000000000    70851 Not voted yet
-    --- ------------------------------------------ --------------------------- -------------------------- -------- -------------
-    =========================================================================================================================================
+      # Account                                            ETH          DAO (Est)Gas Voting Status
+    --- ------------------------------------------ ----------- ------------ -------- -------------
+      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.11       111.00    56287 Voted Nay
+      1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.22       222.00    70851 Not voted yet
+    --- ------------------------------------------ ----------- ------------ -------- -------------
+    ==============================================================================================
 
     # A NO vote on proposal #2 from account #1
     user@Kumquat:~$ theDAOVoter --vote --id=2 --account=1 --support=0
@@ -84,7 +84,6 @@ Following are some sample uses of this script with results. Add the parameter `-
     SubTot      5675420.80     87138029.50                                            OPEN
     Total       5675420.80     87138029.50                                            Both
     ------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------
-
 
 <br />
 
