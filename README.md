@@ -46,7 +46,7 @@ Following are some sample uses of this script with results. Add the parameter `-
 
     # List proposal #2 checking the voting status of this proposal from your accounts
     user@Kumquat:~$ theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes --decimalplaces=2
-    =========================================================================================================================================
+    ==============================================================================================
     Proposal 2. OPEN until Sun Jun 12 03:18:37 2016
     Votes       Yea 2473115 (44.20%) Nay 3122385 (55.80%) Quorum 0.48% of 20%
     Creator     0x5a8e70f2d75c1468db4a2241fdd70e5a84f028b8
