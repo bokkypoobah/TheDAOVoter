@@ -3,7 +3,7 @@
 ### Description
 Perl script to list and vote on The DAO proposals
 
-The script `theDAOVoter` is a small (903 lines, 828 source lines) Perl script that allows you to:
+The script `theDAOVoter` is a small (936 lines, 856 source lines) Perl script that allows you to:
 * List The DAO proposals.
 * List your accounts, displaying whether The DAO transfers are blocked due to opened votes and expiry time.
 * List the DAO proposals with a listing of your accounts showing which accounts have already voted on each proposal. Past votes can also be listed along with the actual gas used.
@@ -27,6 +27,8 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 * v1.0000000000000004 05/06/2016
     * `--sumsplits` to list the sum of splits
     * `--account` can now be used to specify an account not in your keystore
+* v1.0000000000000005 05/06/2016
+    * `--decimalplaces` 
 
 <br />
 
@@ -105,9 +107,9 @@ to
     
 Run the script without any parameters to view the following help text:
 
-    user@Kumquat:~$ theDAOVoter
+    user@Kumquat:~$ theDAOVoter 
     
-    The DAO Voter v1.0000000000000003 03/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+    The DAO Voter v1.0000000000000005 05/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
     
     Usage: theDAOVoter {command} [options]
     
@@ -122,35 +124,37 @@ Run the script without any parameters to view the following help text:
     parameters listed below.
     
     The --listproposals command has additional optional parameters:
-      --id={proposal id}             Proposal id.
-      --first={first proposal id}    First proposal id. Default '1'.
-      --last={last proposal id}      Last proposal id. Default last proposal id.
-      --split={exclude|include|only} Include splits. Default 'exclude'.
-      --status={open|closed|both}    Proposal status. Default 'open'.
-      --checkvotingstatus            Check your voting status for the proposals. Default off. This
-                                     check uses eth.estimateGas() API call to determine if you have
-                                     already voted.
-      --checkpastvotes               Retrieve your past voting history. Default off. Actual gas used
-                                     will be reported in the (Est)Gas column
+      --id={proposal id}               Proposal id.
+      --first={first proposal id}      First proposal id. Default '1'.
+      --last={last proposal id}        Last proposal id. Default last proposal id.
+      --split={exclude|include|only}   Include splits. Default 'exclude'.
+      --status={open|closed|both}      Proposal status. Default 'open'.
+      --checkvotingstatus              Check your voting status for the proposals. Default off. This
+                                       check uses eth.estimateGas() API call to determine if you have
+                                       already voted.
+      --checkpastvotes                 Retrieve your past voting history. Default off. Actual gas used
+                                       will be reported in the (Est)Gas column
     
     The --sumsplits command has no additional option.
     
     The --vote command has the additional options:
-      --id={proposal id}             Proposal id.
-      --support={0|n|1|y}            Don't support (0 or n) or support (1 or y) proposal.
-      --force                        Force a vote even when this tool reports that you have already voted.
+      --id={proposal id}               Proposal id.
+      --support={0|n|1|y}              Don't support (0 or n) or support (1 or y) proposal.
+      --force                          Force a vote even when this tool reports that you have already voted.
     
     There following options can be use generally:
-      --account={account or id}      Vote from account number (e.g. 1) or address (e.g. 0xabc...)
-      --verbose                      Display what this script is doing.
+      --account={account or id}        Use account number (e.g. 1) or address (e.g. 0xabc...)
+      --decimalplaces={decimal places) Number of decimal places. Default ETH '18', DAO '16'.
+      --verbose                        Display what this script is doing.
     
     HISTORY
       v1.0000000000000000 02/06/2016 First version
       v1.0000000000000001 03/06/2016 Tidy
       v1.0000000000000002 03/06/2016 Added --checkpastvotes by retrieving The DAO Voted(...) events
       v1.0000000000000003 04/06/2016 Display account The DAO token blocked status and unblock time
-      v1.0000000000000003 05/06/2016 --sumsplits to list the sum of splits
+      v1.0000000000000004 05/06/2016 --sumsplits to list the sum of splits
                                      --account can now be used to specify an account not in your keystore
+      v1.0000000000000005 05/06/2016 --decimalplaces
     
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
@@ -201,7 +205,7 @@ Run the script without any parameters to view the following help text:
     
     Enjoy, and vote well. BokkyPooBah 2016.
     
-    Stopped at theDAOVoter line 266.
+    Stopped at theDAOVoter line 287.
         
 <br />
 
