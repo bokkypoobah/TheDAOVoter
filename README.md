@@ -272,6 +272,7 @@ Vote on proposal #2 from account #1, not supporting this vote
 <br />
 
 ### Licence
+<pre>
 The MIT License (MIT)
 
 Copyright (c) 2016 bokkypoobah
@@ -293,6 +294,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+</pre>
 
 <br />
 
