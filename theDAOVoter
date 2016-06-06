@@ -39,7 +39,7 @@ my $DEFAULTETHDECIMALPLACES = 18;
 my $DEFAULTDAODECIMALPLACES = 16;
 
 my $helptext = qq\
-The DAO Voter v1.0000000000000005 05/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+The DAO Voter v1.0000000000000006 06/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
 
 Usage: $0 {command} [options]
 
@@ -85,6 +85,7 @@ HISTORY
   v1.0000000000000004 05/06/2016 --sumsplits to list the sum of splits
                                  --account can now be used to specify an account not in your keystore
   v1.0000000000000005 05/06/2016 --decimalplaces
+  v1.0000000000000006 05/06/2016 Improved error handling, displaying durations with time
 
 
 REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
@@ -168,9 +169,7 @@ $Text::Wrap::columns = $terminalWidth;
 my ($ethDecimalPlaces, $ethNumberLength, $daoDecimalPlaces, $daoNumberLength);
 if (defined $decimalPlaces) {
   if ($decimalPlaces < 0 || $decimalPlaces > 18) {
-    printf "Error: --decimalPlaces must be >= 0 and <= 18\n";
-    $status = 2;
-    exit;
+    die "Error: --decimalPlaces must be >= 0 and <= 18\nStopped";
   }
   $ethDecimalPlaces = $decimalPlaces;
   $daoDecimalPlaces = $decimalPlaces;
@@ -182,7 +181,7 @@ $ethNumberLength = $ethDecimalPlaces + 9 + ($ethDecimalPlaces == 0 ? 1 : 0);
 $daoNumberLength = $daoDecimalPlaces + 10 + ($daoDecimalPlaces == 0 ? 1 : 0);
 
 if (defined $help) {
-  $status = 1;
+  die $helptext;
 } elsif (defined $listAccounts) {
   $status = listAccounts($account);
 } elsif (defined $listProposals) {
@@ -195,16 +194,14 @@ if (defined $help) {
       $proposalfrom = $id;
       $proposalto = $id;
     } else {
-      printf "Error: --id must be >= 1 and <= $numberOfProposals\n";
-      $status = 2;
+      die "Error: --id must be >= 1 and <= $numberOfProposals\nStopped";
     }
   } else {
     if (defined $first) {
       if ($first > 0 && $first <= $numberOfProposals) {
         $proposalfrom = $first;
       } else {
-        printf "Error: --first must be >= 1 and <= $numberOfProposals\n";
-        $status = 2;
+        die "Error: --first must be >= 1 and <= $numberOfProposals\nStopped";
       }
     } else {
       $proposalfrom = $DEFAULTFIRST;
@@ -213,26 +210,22 @@ if (defined $help) {
       if ($last > 0 && $last <= $numberOfProposals) {
         $proposalto = $last;
       } else {
-        printf "Error: --last must be >= 1 and <= $numberOfProposals\n";
-        $status = 2;
+        die "Error: --last must be >= 1 and <= $numberOfProposals\nStopped";
       }
     } else {
       $proposalto = $numberOfProposals;
     }
     if (defined $first && defined $last && $first > $last) {
-      printf "Error: --first must be <= --last\n";
-      $status = 2;
+      die "Error: --first must be <= --last\nStopped";
     }
   }
   if (defined $proposalStatus && !($proposalStatus eq "open" || $proposalStatus eq "closed" || $proposalStatus eq "both")) {
-    printf "Error: --status must be 'open', 'closed' or 'both'\n";
-    $status = 2;
+    die "Error: --status must be 'open', 'closed' or 'both'\nStopped";
   } elsif (!defined $proposalStatus) {
     $proposalStatus = $DEFAULTSTATUS;
   }
   if (defined $split && !($split eq "exclude" || $split eq "include" || $split eq "only")) {
-    printf "Error: --split must be 'exclude', 'include' or 'only'\n";
-    $status = 2;
+    die "Error: --split must be 'exclude', 'include' or 'only'\nStopped";
   } elsif (!defined $split) {
     $split = $DEFAULTSPLIT;
   }
@@ -245,21 +238,18 @@ if (defined $help) {
     if defined $verbose;
   if (defined $id) {
     if ($id <= 0 || $id > $numberOfProposals) {
-      printf "Error: --id must be >= 1 and <= $numberOfProposals\n";
-      $status = 2;
+      die "Error: --id must be >= 1 and <= $numberOfProposals\nStopped";
     }
   }
   my %accounts = getAccounts($account);
   my $votingAddress;
   if (scalar keys %accounts == 1) {
-    printf "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\n";
-    $status = 2; 
+    die "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\nStopped";
   } else {
     $votingAddress = $accounts{0}->{account};
   }
-  if (!defined $votingAddress) {
-    printf "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\n";
-    $status = 2; 
+  if (!defined $votingAddress || !defined $account) {
+    die "Error: --account must be specified as a number (e.g. 1) or address (e.g. 0xabc...)\nStopped";
   }
   my $supportProposal;
   if (defined $support) {
@@ -270,8 +260,7 @@ if (defined $help) {
     }
   }
   if (!defined $supportProposal) {
-    printf "Error: --support can be 0, n or N if you don't support the proposal, or 1, y or Y if you support the proposal\n";
-    $status = 2; 
+    die "Error: --support can be 0, n or N if you don't support the proposal, or 1, y or Y if you support the proposal\nStopped";
   }
   $force = 0
     unless defined $force;
@@ -281,11 +270,8 @@ if (defined $help) {
 } elsif (defined $sumSplits) {
   $status = sumSplits();
 } else {
-  $status = 1;
+  die $helptext;
 }
-
-die $helptext
-  if $status == 1;
 
 exit;
 
@@ -300,7 +286,7 @@ sub listAccounts {
   print "  # Account                                 " . " " x $ethNumberLength . "ETH" . 
     " " x ($daoNumberLength - 2) . "DAO The DAO transfer blocked by OPEN proposal?\n";
   my $separator = "--- ------------------------------------------ " . "-" x $ethNumberLength . 
-    " " . "-" x $daoNumberLength . " ------------------------------------------\n";
+    " " . "-" x $daoNumberLength . " ------------------------------------------------------------\n";
   print $separator;
   for (my $i = 0; $i < scalar keys %accounts; $i++) {
     my $account = $accounts{$i};
@@ -310,7 +296,7 @@ sub listAccounts {
     } else {
       my $blockString;
       if ($account->{blocked} != 0 && $account->{open} eq "true") {
-        $blockString = "#" . $account->{blocked} . " OPEN until " . scalar localtime $account->{votingDeadline};
+        $blockString = "#" . $account->{blocked} . " OPEN until " . getTimeAndDuration($account->{votingDeadline});
       } else {
         $blockString = "";
       }
@@ -363,10 +349,10 @@ sub listProposals {
     my $close;
     my $passed;
     if ($open) {
-      $close = "OPEN until " . scalar localtime $votingDeadline;
+      $close = "OPEN until " . getTimeAndDuration($votingDeadline);
       $passed = "";
     } else {
-      $close = "CLOSED " . scalar localtime $votingDeadline;
+      $close = "CLOSED " . getTimeAndDuration($votingDeadline);
       $passed = $proposalPassed eq "true" ? "PASSED, " : "NOT PASSED, ";
     }
     printf "=" x $terminalWidth . "\n";
@@ -496,7 +482,7 @@ sub vote {
   # Vote now
   my $password = "";
   if ($status == 0) {
-    print "Enter password for $votingAddress to vote: ";
+    print "Enter password for $votingAddress to vote (or Control-C to cancel): ";
     system('stty', '-echo');
     $password = <>;
     system('stty', 'echo');
@@ -519,7 +505,7 @@ exit;
     $commandNoPassword =~ s/unlockAccount(.*);/unlockAccount("$votingAddress", "********" , $UNLOCKACCOUNTSECONDS);/g;
     printf scalar localtime . " Executing " . $commandNoPassword . "\n"
       if defined $verbose;
-    my @output = `echo '$command' | $GETHBINARY attach`;
+    my @output = `echo '$command' | $GETHBINARY attach 2>&1`;
     my $txId;
     for my $line (@output) {
       $line =~ s/unlockAccount(.*);/unlockAccount(*,*,2);/g;
@@ -611,12 +597,8 @@ if (account == "") {
 console.log(i + "\\tTotal\\t" + totalEthers.toFixed($ethDecimalPlaces) + "\\t" + totalDaos.toFixed($daoDecimalPlaces) + "\\t" + 0 + "\\t" + 0 + "\\t" + false);
 exit;
 /;
-  printf scalar localtime . " Executing " . $command . "\n"
-    if defined $verbose;
-  my @output = `echo '$command' | $GETHBINARY attach`;
+  my @output = executeGethCommand($command);
   for my $line (@output) {
-    printf scalar localtime . " " . $line 
-      if defined $verbose;
     if ($line =~ /\d+\t\S+\t\d+.*\t\d+/) {
       my ($i, $account, $ethers, $daos, $blocked, $votingDeadline, $open) = $line =~ /(\d+)\t(\S+)\t(\d+.*)\t(\d+.*)\t(\S+)\t(\S+)\t(\S+)/;
       printf scalar localtime . " " . $i . " " . $account . " " . $ethers . " " . $daos . " " . $blocked . " " . $votingDeadline . " " . $open . "\n"
@@ -646,12 +628,8 @@ var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
 console.log("numberOfProposals\\t" + theDAO.numberOfProposals());
 exit;
 /;
-  printf scalar localtime . " Executing " . $command . "\n"
-    if defined $verbose;
-  my @output = `echo '$command' | $GETHBINARY attach`;
+  my @output = executeGethCommand($command);
   for my $line (@output) {
-    printf scalar localtime . " " . $line 
-      if defined $verbose;
     if ($line =~ /numberOfProposals/) { 
       ($result) = $line =~ /numberOfProposals\t(\d+)/;
     }
@@ -727,12 +705,8 @@ for (proposalId = $first; proposalId <= $last; proposalId++) {
 
 exit;
 /;
-  printf scalar localtime . " Executing " . $command . "\n"
-    if defined $verbose;
-  my @output = `echo '$command' | $GETHBINARY attach`;
+  my @output = executeGethCommand($command);
   for my $line (@output) {
-    printf scalar localtime . " " . $line 
-      if defined $verbose;
     if ($line =~ /.*\t.*\t.*\t.*\t.*/) {
       my ($proposalId, $recipient, $amount, $description, $votingDeadline, $open, $proposalPassed, $proposalDeposit,
           $newCurator, $yea, $nay, $creator, $yeaPercent, $nayPercent, $percent, $quorum) = split /\t/, $line;
@@ -781,12 +755,8 @@ var result = eth.estimateGas({from: "$account", to: "$THEDAOADDRESS", data: "$da
 console.log("result\\t" + result);
 exit;
 /;
-  printf scalar localtime . " Executing " . $command . "\n"
-    if defined $verbose;
-  my @output = `echo '$command' | $GETHBINARY attach`;
+  my @output = executeGethCommand($command);
   for my $line (@output) {
-    printf scalar localtime . " " . $line 
-      if defined $verbose;
     if ($line =~ /result/) { 
       ($result) = $line =~ /result\t(\S+)/;
     }
@@ -859,13 +829,9 @@ theDAOVotedEvent.watch(function(error, result){
 });
 exit;
 /;
-  printf scalar localtime . " Executing " . $command . "\n"
-    if defined $verbose;
-  my @output = `echo '$command' | $GETHBINARY attach`;
+  my @output = executeGethCommand($command);
   my $row = 0;
   for my $line (@output) {
-    printf scalar localtime . " " . $line
-      if defined $verbose;
     if ($line =~ /address.*args/) { 
       my ($position, $proposalId, $voter, $blockNumber, $txHash) = 
         $line =~ /position\":(.*),\"proposalID":\"(\d+)\",\"voter\":\"(.*)\"}.*blockNumber\":(\d+),\"event.*tionHash\":\"(.*)\",\"/;
@@ -918,12 +884,8 @@ var gasUsed = eth.getTransactionReceipt("$txHash").gasUsed;
 console.log("gasUsed\\t" + gasUsed);
 exit;
 /;
-  printf scalar localtime . " Executing " . $command . "\n"
-    if defined $verbose;
-  my @output = `echo '$command' | $GETHBINARY attach`;
+  my @output = executeGethCommand($command);
   for my $line (@output) {
-    printf scalar localtime . " " . $line
-      if defined $verbose;
     if ($line =~ /gasUsed\t\d+/) {
       ($result) = $line =~ /gasUsed\t(\d+)/;
       printf scalar localtime . " " . $result . "\n"
@@ -933,3 +895,47 @@ exit;
   return $result;
 }
 
+
+# ------------------------------------------------------------------------------
+# Execute geth attach command with script
+# ------------------------------------------------------------------------------
+sub executeGethCommand {
+  my ($command) = @_;
+  printf scalar localtime . " Executing " . $command . "\n"
+    if defined $verbose;
+  my @result = `echo '$command' | $GETHBINARY attach 2>&1`;
+  my $i = 0;
+  for my $line (@result) {
+    $i++;
+    chomp $line;
+    if (defined $verbose) {
+      printf scalar localtime . " line " . $i . ": " . $line . "\n";
+    }
+    if ($line =~ /Unable to attach to geth/) {
+      die "Cannot attach to a 'geth [options] console' instance. Please start 'geth [options] console'.\nError returned " . 
+        $line . "\nStopped";
+    } elsif ($line =~ /not found/) {
+      die "The command '$GETHBINARY' was not found on your path. Please adjust the \$GETHBINARY variable in $0.\nError returned " .
+        $line . "\nStopped";
+    }
+  }
+  return @result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get duration
+# ------------------------------------------------------------------------------
+sub getTimeAndDuration {
+  my ($when) = @_;
+  my $diff = $when - time;
+  my $positive = $diff > 0;
+  $diff = abs($diff);
+  my $days = int($diff / (60 * 60 * 24));
+  $diff = $diff % (60 * 60 * 24);
+  my $hours = int($diff / (60 * 60));
+  $diff = $diff % (60 * 60);
+  my $minutes = int($diff / 60);
+  my $seconds = $diff % 60;
+  return (scalar localtime $when) . " [" . ($positive ? "+" : "-") . sprintf("%dd %02dh %02dm %02ds", $days, $hours, $minutes, $seconds) . "]";
+}
