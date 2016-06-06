@@ -27,8 +27,8 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 * v1.0000000000000004 05/06/2016
     * `--sumsplits` to list the sum of splits
     * `--account` can now be used to specify an account not in your keystore
-* v1.0000000000000005 05/06/2016
-    * `--decimalplaces` 
+* v1.0000000000000005 05/06/2016 `--decimalplaces` 
+* v1.0000000000000006 06/06/2016 Improved error handling, displaying durations with time
 
 <br />
 
@@ -108,7 +108,7 @@ Run the script without any parameters to view the following help text:
 
     user@Kumquat:~$ theDAOVoter 
     
-    The DAO Voter v1.0000000000000005 05/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+    The DAO Voter v1.0000000000000006 06/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
     
     Usage: theDAOVoter {command} [options]
     
@@ -154,7 +154,7 @@ Run the script without any parameters to view the following help text:
       v1.0000000000000004 05/06/2016 --sumsplits to list the sum of splits
                                      --account can now be used to specify an account not in your keystore
       v1.0000000000000005 05/06/2016 --decimalplaces
-    
+      v1.0000000000000006 06/06/2016 Improved error handling, displaying durations with time
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
     or ActiveState Perl on Windows. 
