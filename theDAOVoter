@@ -39,7 +39,7 @@ my $DEFAULTETHDECIMALPLACES = 18;
 my $DEFAULTDAODECIMALPLACES = 16;
 
 my $helptext = qq\
-The DAO Voter v1.0000000000000006 06/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+The DAO Voter v1.0000000000000008 07/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
 
 Usage: $0 {command} [options]
 
@@ -54,7 +54,7 @@ The --listaccounts command has no additional optional parameters other than the 
 parameters listed below.
 
 The --listproposals command has additional optional parameters:
-  --id={proposal id}               Proposal id.
+  --proposalid={id}                Proposal id.
   --first={first proposal id}      First proposal id. Default '$DEFAULTFIRST'.
   --last={last proposal id}        Last proposal id. Default last proposal id.
   --split={exclude|include|only}   Include splits. Default '$DEFAULTSPLIT'.
@@ -68,7 +68,8 @@ The --listproposals command has additional optional parameters:
 The --sumsplits command has no additional option.
 
 The --vote command has the additional options:
-  --id={proposal id}               Proposal id.
+  --account={account or id}        Use account number (e.g. 1) or address (e.g. 0xabc...)
+  --proposalid={id}                Proposal id.
   --support={0|n|1|y}              Don't support (0 or n) or support (1 or y) proposal.
   --force                          Force a vote even when this tool reports that you have already voted.
 
@@ -86,6 +87,8 @@ HISTORY
                                  --account can now be used to specify an account not in your keystore
   v1.0000000000000005 05/06/2016 --decimalplaces
   v1.0000000000000006 06/06/2016 Improved error handling, displaying durations with time
+  v1.0000000000000007 07/06/2016 Tidy yea/YEA/nay/NAY
+  v1.0000000000000008 07/06/2016 --id renamed to --proposalid, improved --sumsplits
 
 
 REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
@@ -139,7 +142,7 @@ Enjoy, and vote well. BokkyPooBah 2016.
 Stopped\;
 
 my ($listAccounts, $listProposals, $sumSplits, $vote);
-my ($id, $first, $last, $split, $proposalStatus, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
+my ($proposalId, $first, $last, $split, $proposalStatus, $checkVotingStatus, $checkPastVotes, $account, $support, $force);
 my ($help, $verbose, $decimalPlaces);
 my $status = 0;
 
@@ -151,7 +154,7 @@ GetOptions(
   "help"                => \$help,
   "verbose"             => \$verbose,
   "decimalPlaces:n"     => \$decimalPlaces,
-  "id:n"                => \$id,
+  "proposalid:n"        => \$proposalId,
   "first:n"             => \$first,
   "last:n"              => \$last,
   "status:s"            => \$proposalStatus,
@@ -182,19 +185,21 @@ $daoNumberLength = $daoDecimalPlaces + 10 + ($daoDecimalPlaces == 0 ? 1 : 0);
 
 if (defined $help) {
   die $helptext;
+
 } elsif (defined $listAccounts) {
   $status = listAccounts($account);
+
 } elsif (defined $listProposals) {
   my $numberOfProposals = getNumberOfProposals();
   printf "Number of proposals: %d\n", $numberOfProposals
     if defined $verbose;
   my ($proposalfrom, $proposalto);
-  if (defined $id) {
-    if ($id > 0 && $id <= $numberOfProposals) {
-      $proposalfrom = $id;
-      $proposalto = $id;
+  if (defined $proposalId) {
+    if ($proposalId > 0 && $proposalId <= $numberOfProposals) {
+      $proposalfrom = $proposalId;
+      $proposalto = $proposalId;
     } else {
-      die "Error: --id must be >= 1 and <= $numberOfProposals\nStopped";
+      die "Error: --proposalid must be >= 1 and <= $numberOfProposals\nStopped";
     }
   } else {
     if (defined $first) {
@@ -232,14 +237,17 @@ if (defined $help) {
   if ($status == 0) {
     $status = listProposals($proposalfrom, $proposalto, $proposalStatus, $split, $account);
   }
+
 } elsif (defined $vote) {
   my $numberOfProposals = getNumberOfProposals();
   printf "Number of proposals: %d\n", $numberOfProposals
     if defined $verbose;
-  if (defined $id) {
-    if ($id <= 0 || $id > $numberOfProposals) {
-      die "Error: --id must be >= 1 and <= $numberOfProposals\nStopped";
+  if (defined $proposalId) {
+    if ($proposalId <= 0 || $proposalId > $numberOfProposals) {
+      die "Error: --proposalid must be >= 1 and <= $numberOfProposals\nStopped";
     }
+  } else {
+    die "Error: Please specify --proposalId={id}, where {id} must be >= 1 and <= $numberOfProposals\nStopped";
   }
   my %accounts = getAccounts($account);
   my $votingAddress;
@@ -265,10 +273,12 @@ if (defined $help) {
   $force = 0
     unless defined $force;
   if ($status == 0) {
-    $status = vote($votingAddress, $id, $supportProposal, $force);
+    $status = vote($votingAddress, $proposalId, $supportProposal, $force);
   }
+
 } elsif (defined $sumSplits) {
   $status = sumSplits();
+
 } else {
   die $helptext;
 }
@@ -292,7 +302,7 @@ sub listAccounts {
     my $account = $accounts{$i};
     if ($account->{account} =~ /Total/) {
       print $separator;
-      printf "%3d %-42s %*s %*s\n", $i, $account->{account}, $ethNumberLength, $account->{ethers}, $daoNumberLength, $account->{daos};
+      printf "%3d %-42s %*s %*s\n", $i, $account->{account}, $ethNumberLength, $account->{eth}, $daoNumberLength, $account->{dao};
     } else {
       my $blockString;
       if ($account->{blocked} != 0 && $account->{open} eq "true") {
@@ -300,7 +310,7 @@ sub listAccounts {
       } else {
         $blockString = "";
       }
-      printf "%3d %-42s %*s %*s %s\n", $i, $account->{account}, $ethNumberLength, $account->{ethers}, $daoNumberLength, $account->{daos}, $blockString;
+      printf "%3d %-42s %*s %*s %s\n", $i, $account->{account}, $ethNumberLength, $account->{eth}, $daoNumberLength, $account->{dao}, $blockString;
     }
   }
   return 0;
@@ -357,7 +367,9 @@ sub listProposals {
     }
     printf "=" x $terminalWidth . "\n";
     printf "Proposal %d. %s%s\n", $proposalId, $passed, $close;
-    printf "Votes       Yea %.0f (%.2f%%) Nay %.0f (%.2f%%) Quorum %.2f%% of %.0f%%\n", 
+    my $yeaString = ($yea > $nay) ? "YEA" : "yea";
+    my $nayString = ($yea > $nay) ? "nay" : "NAY";
+    printf "Votes       $yeaString %.0f (%.2f%%) $nayString %.0f (%.2f%%) Quorum %.2f%% of %.0f%%\n", 
       $yea, $yeaPercent, $nay, $nayPercent, $percent, $quorum;
     printf "Creator     %s\n", $creator;
     printf "Recipient   %s\n", $recipient;
@@ -385,7 +397,7 @@ sub listProposals {
         if (!($account->{account} =~ /Total/)) {
           my $estimatedGas;
           my $votingStatus;
-          if ($account->{daos} > 0) {
+          if ($account->{dao} > 0) {
             $estimatedGas = checkProposalVoteStatus($account->{account}, $proposalId, 0);
             $votingStatus = ($estimatedGas == $ESTIMATEGASMAXGAS) ? "Already voted" : "Not voted yet";
           } else {
@@ -399,8 +411,8 @@ sub listProposals {
               $votingStatus = $position ne "false" ? "Voted Yea" : "Voted Nay";
             }
           }
-          printf "%3d %-42s %*s %*s %8d %-13s\n", $i, $account->{account}, $ethNumberLength, $account->{ethers}, 
-            $daoNumberLength, $account->{daos}, $estimatedGas, $votingStatus;
+          printf "%3d %-42s %*s %*s %8d %-13s\n", $i, $account->{account}, $ethNumberLength, $account->{eth}, 
+            $daoNumberLength, $account->{dao}, $estimatedGas, $votingStatus;
         }
       }
       # print "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
@@ -418,13 +430,17 @@ sub sumSplits {
   my $numberOfProposals = getNumberOfProposals();
   printf "Number of proposals: %d\n", $numberOfProposals
     if defined $verbose;
+  my $totalSupply = getTotalSupply();
+  printf "Total Supply: %d\n", $totalSupply
+    if defined $verbose;
   my $proposalStatus = "both";
   my $split = "only";
   my %proposals = getProposals(1, $numberOfProposals, $proposalStatus, $split);
 
-  print "  Prop             Yea             Nay Recipient                                  Open   Description                             \n";
-  print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
-  my ($totalYeaOpen, $totalNayOpen, $totalYeaClosed, $totalNayClosed) = (0, 0, 0, 0);
+  print "  Prop             Yea             Nay Recipient                                  Open    Description                             \n";
+  my $separator = "------ --------------- --------------- ------------------------------------------ ------- ----------------------------------------\n";
+  print $separator;
+  my ($totalYeaOpen, $totalNayOpen, $totalYeaExpired, $totalNayExpired, $totalYeaClosed, $totalNayClosed) = (0, 0, 0, 0, 0, 0);
   foreach my $proposalId (sort { $a <=> $b } keys %proposals) {
     my $proposal = $proposals{$proposalId};
     my $recipient = $proposal->{recipient};
@@ -434,29 +450,43 @@ sub sumSplits {
     $descriptionFormatted =~ s/\\n/\n/g;
     $descriptionFormatted =~ s/(\R)(?:\h*\R)+/$1$1/g;
     my $votingDeadline = $proposal->{votingDeadline};
-    my $open = $proposal->{open} ? "OPEN" : "CLOSED";
     my $proposalPassed = $proposal->{proposalPassed};
     my $proposalDeposit = $proposal->{proposalDeposit};
     my $newCurator = $proposal->{newCurator};
     my $yea = $proposal->{yea};
     my $nay = $proposal->{nay};
+    my $open;
     if ($proposal->{open}) {
-      $totalYeaOpen += $yea;
-      $totalNayOpen += $nay;
+      if ($proposal->{votingDeadline} < time) {
+        $totalYeaExpired += $yea;
+        $totalNayExpired += $nay;
+        $open = "Expired";
+      } else {
+        $totalYeaOpen += $yea;
+        $totalNayOpen += $nay;
+        $open = "Open";
+      }
     } else {
       $totalYeaClosed += $yea;
       $totalNayClosed += $nay;
+      $open = "Closed";
     }
     my $creator = $proposal->{creator};
-    printf "%6d %15.2f %15.2f %s %-6s %-40s\n", $proposalId, $yea, $nay, $recipient, $open, substr($descriptionFormatted, 0, 40);
+    printf "%6d %15.2f %15.2f %s %-7s %-40s\n", $proposalId, $yea, $nay, $recipient, $open, substr($descriptionFormatted, 0, 40);
 
     # printf "=" x $terminalWidth . "\n\n";
   }
-  print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
-  printf "SubTot %15.2f %15.2f                                            CLOSED\n", $totalYeaClosed, $totalNayClosed;
-  printf "SubTot %15.2f %15.2f                                            OPEN\n", $totalYeaOpen, $totalNayOpen;
-  printf "Total  %15.2f %15.2f                                            Both\n", ($totalYeaClosed + $totalYeaOpen), ($totalNayOpen + $totalNayClosed);
-  print "------ --------------- --------------- ------------------------------------------ ------ ----------------------------------------\n";
+  my $totalYea = $totalYeaOpen + $totalYeaExpired + $totalYeaClosed;
+  my $totalNay = $totalNayOpen + $totalNayExpired + $totalNayClosed;
+  print $separator;
+  printf "SubTot %15.2f %15.2f                                            Closed\n", $totalYeaClosed, $totalNayClosed;
+  printf "SubTot %15.2f %15.2f                                            Expired\n", $totalYeaExpired, $totalNayExpired;
+  printf "SubTot %15.2f %15.2f                                            Open\n", $totalYeaOpen, $totalNayOpen;
+  printf "Total  %15.2f %15.2f                                            All\n", $totalYea, $totalNay;
+  printf "Total  %15.2f                                                            Supply\n", $totalSupply;
+  print $separator;
+  print "Notes: Nay votes don't affect split votes\n";
+  print "Generated by $0 at " . scalar localtime . "\n";
   return 0;
 }
 
@@ -604,14 +634,41 @@ exit;
       printf scalar localtime . " " . $i . " " . $account . " " . $ethers . " " . $daos . " " . $blocked . " " . $votingDeadline . " " . $open . "\n"
         if defined $verbose;
       $result{$i}{account} = $account;
-      $result{$i}{ethers} = $ethers;
-      $result{$i}{daos} = $daos;
+      $result{$i}{eth} = $ethers;
+      $result{$i}{dao} = $daos;
       $result{$i}{blocked} = $blocked;
       $result{$i}{votingDeadline} = $votingDeadline;
       $result{$i}{open} = $open;
     }
   }
   return %result;
+}
+
+
+# ------------------------------------------------------------------------------
+# Get totalSupply
+# ------------------------------------------------------------------------------
+sub getTotalSupply {
+  printf scalar localtime . " getTotalSupply()\n"
+    if defined $verbose;
+  my $result = 0;
+  my $command = qq/
+var theDAOABIFragment = [{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"type":"function"}];
+var theDAO = eth.contract(theDAOABIFragment).at("$THEDAOADDRESS");
+var totalSupply = theDAO.totalSupply()\/1e16;
+console.log("totalSupply\\t" + totalSupply.toFixed(9));
+exit;
+/;
+  my @output = executeGethCommand($command);
+  for my $line (@output) {
+    if ($line =~ /totalSupply/) { 
+      ($result) = $line =~ /totalSupply\t(\d+.*)/;
+      last;
+    }
+  }
+  printf scalar localtime . " totalSupply: %.9f\n", $result 
+    if defined $verbose;
+  return $result;
 }
 
 
@@ -632,6 +689,7 @@ exit;
   for my $line (@output) {
     if ($line =~ /numberOfProposals/) { 
       ($result) = $line =~ /numberOfProposals\t(\d+)/;
+      last;
     }
   }
   printf scalar localtime . " numberOfProposals: %d\n", $result 
