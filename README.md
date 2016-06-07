@@ -31,6 +31,7 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 * v1.0000000000000006 06/06/2016 Improved error handling, displaying durations with time
 * v1.0000000000000007 07/06/2016 Tidy yea/YEA/nay/NAY
 * v1.0000000000000008 07/06/2016 --id renamed to --proposalid, improved --sumsplits
+* v1.0000000000000009 07/06/2016 --sumsplits report statistics
 
 <br />
 
@@ -74,64 +75,65 @@ Following are some sample uses of this script with results. Add the parameter `-
     
     # Check total The DOA proposals splitting
     user@Kumquat:~$ theDAOVoter --sumsplits
-      Prop             Yea             Nay Recipient                                  Open    Description                             
-    ------ --------------- --------------- ------------------------------------------ ------- ----------------------------------------
-         1       967598.22      4276278.60 0x13680fa2a60fd551894199f009cca20fb63a3e31 Expired                                         
-         4         5279.34      4322941.58 0x3d5507b53d1613d8491a606ecf5c9268301095dd Expired split                                   
-         6            1.99       167759.64 0xbeb0b93c01297146782a5581370489a36b24deca Open    Original intent, non-interventionist cur
-         7       118006.68      3967413.62 0xe82d5b10ad98d34df448b07a5a62c1affbef758f Expired Leave me alone                          
-         8       199999.99      3931880.95 0xa72ded5c1122312d9f4ed66bf4a396139eadaf56 Expired                                         
-         9      2659899.77      3911880.49 0x228d29ea776cb17ca0db0538562ecaacdc0a9e46 Expired                                         
-        10        15746.04      3933147.83 0x374139a05ac55917badd3f934f1b93f5c8623ded Expired                                         
-        12         5281.35      3945155.27 0xcdc00dd1459e293c9c81880a2b3c4e5396a8ef7b Expired �� cdc00 split proposal ��      
-        13        46039.25      3926435.27 0xf8f9fc62a19c87c657a06febd184f068c0fc9cae Expired arbitrage ftw                           
-        14        51751.22      3873726.70 0x1502447aadf5979e7a842709cd6c4f60afb0a281 Expired                                         
-        16       130199.49      3892661.67 0x7c81d252d9d1295058cd3620835f37e0eedd8840 Open    Split 0x7C8                             
-        18         2200.20      3913649.01 0x13680fa2a60fd551894199f009cca20fb63a3e31 Open                                            
-        19            0.00      3906900.95 0xf398c9b8107dccc697546969fb2d5956762b60fb Open    split-ID-x8nj2z                         
-        20         1000.00      3906620.95 0xe7535ddfcbefe5c318d271476d068d5f7cf77290 Open                                            
-        21            0.00      3866620.95 0xe7535ddfcbefe5c318d271476d068d5f7cf77290 Open                                            
-        22            0.00      3894155.12 0x95a61f934d66580dd410a7369f9c5b8e228d2ff3 Open                                            
-        23         9999.85      3885353.61 0x357d083321319cc1a8ebad90ba1db06c8698eef6 Open    sploot                                  
-        24           10.00      3885353.61 0x3065a8444787f076bff10e5df3ec66606e3c8b68 Open    WL split                                
-        25       100000.00      3885353.61 0x1873f651ecf56d27c01d8d17a1bf06a9acf8830b Open    0x187 canonball                         
-        26        10000.00      3885353.61 0x2b15c5211bda6a867c582080536f6c61766aa5af Open    0x2b15 DAO Split                        
-        27         4117.33      3881046.67 0xa7c605a1aacb641d873c82f9b2715e87339dfd48 Open    n0k0 split                              
-        28        22737.70      3885353.61 0xb18e6467db64686dfed14c7368ca59e5019c95c8 Open    0xB18e split                            
-        29      1275842.51        46973.61 0xd68ba7734753e2ee54103116323aba2d94c78dc5 Open                                            
-        30        24653.70        44306.95 0x479abf2da4d58716fd973a0d13a75f530150260a Open                                            
-        31         7318.67        44306.95 0xf8c3879ee8dde81f074abca79b2270eab9942ec1 Open    my_pitui                                
-        32        18007.67        44306.95 0xb42da5b3701a0592e5aa0aebc0c20711bd49fb46 Open    0xB42 private split                     
-        33         7312.66        44306.95 0xcf69ab35bb6a87a68ce83571a174eef4f998baa7 Open                                            
-        34         5000.00        45306.95 0xfdf97eaa34a883647fac329926b1747e9ef601c6 Open    arbitrageservice 0.00 - test            
-        35          331.23        45306.95 0xaf496a1083a3a7c7edb831f2e9a31eb065f5a228 Open    E's Castle Rock                         
-        36            9.00        45306.95 0xaf496a1083a3a7c7edb831f2e9a31eb065f5a228 Open    Galt's Gulch                            
-        37         7676.17        44306.95 0x98dac39fdcc5c9a8dfc6f63898b62704806851b4 Open    0x98dac split                           
-        38         4542.00         4306.95 0x3822e5ff792e75817b89f5bbb405fc4a9d1a0552 Open    The Ilium Works                         
-        39            0.00      3904410.23 0xf4c0eef475ab35625ac223394f9c410ccb577747 Open    GFX, others please don't vote           
-        41            0.19        50203.17 0xfaed3f06255794bf3f83d7ab08d4554d5d218b41 Open                                            
-        42        54977.28        50203.17 0xbb9bc244d798123fde783fcc1c72d3bb8c189413 Open                                            
-        44        25000.00        50840.86 0x5a422fb07fc9270f5b310fc61f85b8e779cb29a2 Open    Hotdog cheap plot gongzho dao           
-        45           99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1 Open                                            
-        46           99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1 Open                                            
-        47           99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1 Open                                            
-        48           99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1 Open                                            
-        49          737.68         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1 Open                                            
-        50            0.00         5896.22 0x0ee82c5e35cbcf9e1271808f0386b930ee8ae8a2 Open    m split                                 
-        52          300.00         5896.22 0x56ae819a1bc418121a6e8428b5884f7604152322 Open    test split 1337                         
-        53            0.00         5896.22 0x4853143d0f5524df67a0a5bdd2fb63c76c7693f6 Open    arbitrage ftw 2                         
-        54            0.00            0.00 0x0f935781046701897c9e0d9876fb5c82d89d53be Open    split me baby one more time             
-        55            0.00            0.00 0xf2a83b593162d77c62337a02668be1ee088cb55d Open    0xF2a83 Split                           
-    ------ --------------- --------------- ------------------------------------------ ------- ----------------------------------------
-    SubTot            0.00            0.00                                            Closed
-    SubTot      4069601.86     36088860.31                                            Expired
-    SubTot      1712375.28     51367746.36                                            Open
-    Total       5781977.14     87456606.67                                            All
-    Total    1172519071.48                                                            Supply
-    ------ --------------- --------------- ------------------------------------------ ------- ----------------------------------------
+       Prop      Open             Yea             Nay Recipient                                  Description                             
+    ------- --------- --------------- --------------- ------------------------------------------ ----------------------------------------
+          1 Expired         967598.22      4276278.60 0x13680fa2a60fd551894199f009cca20fb63a3e31                                         
+          4 Expired           5279.34      4322941.58 0x3d5507b53d1613d8491a606ecf5c9268301095dd split                                   
+          6 Open                 1.99       169759.64 0xbeb0b93c01297146782a5581370489a36b24deca Original intent, non-interventionist cur
+          7 Expired         118006.68      3967413.62 0xe82d5b10ad98d34df448b07a5a62c1affbef758f Leave me alone                          
+          8 Expired         199999.99      3931880.95 0xa72ded5c1122312d9f4ed66bf4a396139eadaf56                                         
+          9 Expired        2659899.77      3911880.49 0x228d29ea776cb17ca0db0538562ecaacdc0a9e46                                         
+         10 Expired          15746.04      3933147.83 0x374139a05ac55917badd3f934f1b93f5c8623ded                                         
+         12 Expired           5281.35      3945155.27 0xcdc00dd1459e293c9c81880a2b3c4e5396a8ef7b �� cdc00 split proposal ��      
+         13 Expired          46039.25      3926435.27 0xf8f9fc62a19c87c657a06febd184f068c0fc9cae arbitrage ftw                           
+         14 Expired          51751.22      3873726.70 0x1502447aadf5979e7a842709cd6c4f60afb0a281                                         
+         16 Expired         130199.49      3892661.67 0x7c81d252d9d1295058cd3620835f37e0eedd8840 Split 0x7C8                             
+         18 Expired           2200.20      3913649.01 0x13680fa2a60fd551894199f009cca20fb63a3e31                                         
+         19 Expired        1686495.65      3906900.95 0xf398c9b8107dccc697546969fb2d5956762b60fb split-ID-x8nj2z                         
+         20 Expired           1000.00      3906620.95 0xe7535ddfcbefe5c318d271476d068d5f7cf77290                                         
+         21 Expired              0.00      3866620.95 0xe7535ddfcbefe5c318d271476d068d5f7cf77290                                         
+         22 Expired         239999.99      3894155.12 0x95a61f934d66580dd410a7369f9c5b8e228d2ff3                                         
+         23 Open              9999.85      3885353.61 0x357d083321319cc1a8ebad90ba1db06c8698eef6 sploot                                  
+         24 Open                10.00      3885353.61 0x3065a8444787f076bff10e5df3ec66606e3c8b68 WL split                                
+         25 Open            100000.00      3885353.61 0x1873f651ecf56d27c01d8d17a1bf06a9acf8830b 0x187 canonball                         
+         26 Open             10000.00      3885353.61 0x2b15c5211bda6a867c582080536f6c61766aa5af 0x2b15 DAO Split                        
+         27 Open              4117.33      3881046.67 0xa7c605a1aacb641d873c82f9b2715e87339dfd48 n0k0 split                              
+         28 Open             22737.70      3885353.61 0xb18e6467db64686dfed14c7368ca59e5019c95c8 0xB18e split                            
+         29 Open           1275842.51        46973.61 0xd68ba7734753e2ee54103116323aba2d94c78dc5                                         
+         30 Open             24653.70        44306.95 0x479abf2da4d58716fd973a0d13a75f530150260a                                         
+         31 Open              7318.67        44306.95 0xf8c3879ee8dde81f074abca79b2270eab9942ec1 my_pitui                                
+         32 Open             18007.67        44306.95 0xb42da5b3701a0592e5aa0aebc0c20711bd49fb46 0xB42 private split                     
+         33 Open              7312.66        44306.95 0xcf69ab35bb6a87a68ce83571a174eef4f998baa7                                         
+         34 Open              5000.00        45306.95 0xfdf97eaa34a883647fac329926b1747e9ef601c6 arbitrageservice 0.00 - test            
+         35 Open               331.23        45306.95 0xaf496a1083a3a7c7edb831f2e9a31eb065f5a228 E's Castle Rock                         
+         36 Open                 9.00        45306.95 0xaf496a1083a3a7c7edb831f2e9a31eb065f5a228 Galt's Gulch                            
+         37 Open              7676.17        44306.95 0x98dac39fdcc5c9a8dfc6f63898b62704806851b4 0x98dac split                           
+         38 Open              4542.00         4306.95 0x3822e5ff792e75817b89f5bbb405fc4a9d1a0552 The Ilium Works                         
+         39 Open                 0.00      3904410.23 0xf4c0eef475ab35625ac223394f9c410ccb577747 GFX, others please don't vote           
+         41 Open                 0.19        50203.17 0xfaed3f06255794bf3f83d7ab08d4554d5d218b41                                         
+         42 Open             54977.28        50203.17 0xbb9bc244d798123fde783fcc1c72d3bb8c189413                                         
+         44 Open             25000.00        71740.72 0x5a422fb07fc9270f5b310fc61f85b8e779cb29a2 Hotdog cheap plot gongzho dao           
+         45 Open                99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1                                         
+         46 Open                99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1                                         
+         47 Open                99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1                                         
+         48 Open                99.99         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1                                         
+         49 Open               737.68         5896.22 0x5824a7486ea2ec17749f936c7b89faa4972f8eb1                                         
+         50 Open                 0.00         5896.22 0x0ee82c5e35cbcf9e1271808f0386b930ee8ae8a2 m split                                 
+         52 Open               300.00         5896.22 0x56ae819a1bc418121a6e8428b5884f7604152322 test split 1337                         
+         53 Open                 0.00         5896.22 0x4853143d0f5524df67a0a5bdd2fb63c76c7693f6 arbitrage ftw 2                         
+         54 Open                 0.00            0.00 0x0f935781046701897c9e0d9876fb5c82d89d53be split me baby one more time             
+         55 Open                 0.00            0.00 0xf2a83b593162d77c62337a02668be1ee088cb55d 0xF2a83 Split                           
+    ------- --------- --------------- --------------- ------------------------------------------ ----------------------------------------
+    Closed                       0.00            0.00 Yeas 0.00% of the original supply
+    Expired                6129497.19     59469468.96 Yeas 0.52% of the original supply
+    Open                   1578975.59     28010037.57 Yeas 0.13% of the original supply
+    Total                  7708472.78     87479506.53 Yeas 0.66% of the original supply
+    Supply  Current     1167249986.79                 Reduction from original supply of 5269084.68 or 0.45%
+    Supply  Original    1172519071.47
+    ------- --------- --------------- --------------- ------------------------------------------ ----------------------------------------
     Notes: Nay votes don't affect split votes
-    Generated by theDAOVoter at Tue Jun  7 09:51:57 2016
-    
+    Generated by theDAOVoter at Tue Jun  7 21:37:04 2016
+        
 <br />
 
 ### Installation And Execution
@@ -155,7 +157,7 @@ Run the script without any parameters to view the following help text:
 
     user@Kumquat:~$ theDAOVoter 
     
-    The DAO Voter v1.0000000000000008 07/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+    The DAO Voter v1.0000000000000009 07/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
     
     Usage: theDAOVoter {command} [options]
     
@@ -205,6 +207,7 @@ Run the script without any parameters to view the following help text:
       v1.0000000000000006 06/06/2016 Improved error handling, displaying durations with time
       v1.0000000000000007 07/06/2016 Tidy yea/YEA/nay/NAY
       v1.0000000000000008 07/06/2016 --id renamed to --proposalid, improved --sumsplits
+      v1.0000000000000009 07/06/2016 --sumsplits report statistics
     
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
