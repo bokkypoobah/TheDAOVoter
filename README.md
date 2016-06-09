@@ -48,7 +48,7 @@ Following are some sample uses of this script with results. Add the parameter `-
       3 Total                                           333.33       333.00
 
     # List proposal #2 checking the voting status of this proposal from your accounts
-    user@Kumquat:~$ theDAOVoter --listproposals --id=2 --checkvotingstatus --checkpastvotes --decimalplaces=2
+    user@Kumquat:~$ theDAOVoter --listproposals --proposalid=2 --checkvotingstatus --checkpastvotes --decimalplaces=2
     ==============================================================================================
     Proposal 2. OPEN until Sun Jun 12 03:18:37 2016
     Votes       Yea 2473115 (44.20%) Nay 3122385 (55.80%) Quorum 0.48% of 20%
@@ -69,7 +69,7 @@ Following are some sample uses of this script with results. Add the parameter `-
     ==============================================================================================
 
     # A NO vote on proposal #2 from account #1
-    user@Kumquat:~$ theDAOVoter --vote --id=2 --account=1 --support=0
+    user@Kumquat:~$ theDAOVoter --vote --proposalid=2 --account=1 --support=0
     Enter password for 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb to vote: 
     Transaction Id 0x5555555555555555555555555555555555555555555555555555555555555555
     
@@ -243,15 +243,15 @@ Run the script without any parameters to view the following help text:
       List proposals (excluding splits, open proposals only) and check voting status for your accounts
         theDAOVoter --listproposals --checkvotingstatus
       List proposals #2 and check voting status for your accounts
-        theDAOVoter --listproposals --id=2 --checkvotingstatus
+        theDAOVoter --listproposals --proposalid=2 --checkvotingstatus
       List open proposals and check voting status and past votes for your accounts
         theDAOVoter --listproposals --checkvotingstatus --checkpastvotes
       View split proposal statistics
         theDAOVoter --sumsplits
       Vote on proposal #2 from account #1 in your keystore, not supporting this vote
-        theDAOVoter --vote --id=2 --account=1 --support=0
+        theDAOVoter --vote --proposalid=2 --account=1 --support=0
       Vote on proposal #43 from account 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, supporting this vote
-        theDAOVoter --vote --id=43 --account=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --support=1
+        theDAOVoter --vote --proposalid=43 --account=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --support=1
     
     
     Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
@@ -281,7 +281,7 @@ List proposals (excluding splits, open proposals only) and check voting status f
 
 List proposals #2 and check voting status for your accounts
 
-    theDAOVoter --listproposals --id=2 --checkvotingstatus
+    theDAOVoter --listproposals --proposalid=2 --checkvotingstatus
 
 List open proposals and check voting status and past votes for your accounts
 
@@ -289,7 +289,7 @@ List open proposals and check voting status and past votes for your accounts
 
 Vote on proposal #2 from account #1, not supporting this vote
 
-    theDAOVoter --vote --id=2 --account=1 --support=0
+    theDAOVoter --vote --proposalid=2 --account=1 --support=0
 
 <br />
 
