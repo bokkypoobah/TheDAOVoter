@@ -126,15 +126,15 @@ The more frequently used commands follow:
   List proposals (excluding splits, open proposals only) and check voting status for your accounts
     $0 --listproposals --checkvotingstatus
   List proposals #2 and check voting status for your accounts
-    $0 --listproposals --id=2 --checkvotingstatus
+    $0 --listproposals --proposalid=2 --checkvotingstatus
   List open proposals and check voting status and past votes for your accounts
     $0 --listproposals --checkvotingstatus --checkpastvotes
   View split proposal statistics
     $0 --sumsplits
   Vote on proposal #2 from account #1 in your keystore, not supporting this vote
-    $0 --vote --id=2 --account=1 --support=0
+    $0 --vote --proposalid=2 --account=1 --support=0
   Vote on proposal #43 from account 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, supporting this vote
-    $0 --vote --id=43 --account=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --support=1
+    $0 --vote --proposalid=43 --account=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --support=1
 
 
 Donations happily accepted to Ethereum account 0xbeef281b81d383336aca8b2b067a526227638087.
