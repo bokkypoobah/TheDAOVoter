@@ -23,6 +23,7 @@
 use strict;
 use Getopt::Long qw(:config no_auto_abbrev);
 use Text::Wrap;
+#use bignum;
 
 # Adjust $GETHBINARY to point to geth if it is not on your search path
 my $GETHBINARY = "geth";
@@ -40,7 +41,7 @@ my $DEFAULTDAODECIMALPLACES = 16;
 my $ORIGINALDAOSUPPLY = 1172519071.47;
 
 my $helptext = qq\
-The DAO Voter v1.0000000000000009 07/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+The DAO Voter v1.0000000000000010 11/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
 
 Usage: $0 {command} [options]
 
@@ -91,6 +92,7 @@ HISTORY
   v1.0000000000000007 07/06/2016 Tidy yea/YEA/nay/NAY
   v1.0000000000000008 07/06/2016 --id renamed to --proposalid, improved --sumsplits
   v1.0000000000000009 07/06/2016 --sumsplits report statistics
+  v1.0000000000000010 11/06/2016 --listproposals --checkpastvotes now with actual ETH cost and total
 
 
 REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
@@ -249,7 +251,7 @@ if (defined $help) {
       die "Error: --proposalid must be >= 1 and <= $numberOfProposals\nStopped";
     }
   } else {
-    die "Error: Please specify --proposalId={id}, where {id} must be >= 1 and <= $numberOfProposals\nStopped";
+    die "Error: Please specify --proposalid={id}, where {id} must be >= 1 and <= $numberOfProposals\nStopped";
   }
   my %accounts = getAccounts($account);
   my $votingAddress;
@@ -385,19 +387,17 @@ sub listProposals {
       print "-" x $terminalWidth . "\n\n";
 
       print "  # Account                                 " . " " x $ethNumberLength . "ETH" . 
-        " " x ($daoNumberLength - 2) . "DAO (Est)Gas Voting Status\n";
+        " " x ($daoNumberLength - 2) . "DAO (Est)Gas Voting Status   Cost ETH\n";
       my $separator = "--- ------------------------------------------ " . "-" x $ethNumberLength . 
-        " " . "-" x $daoNumberLength . " -------- -------------\n";
+        " " . "-" x $daoNumberLength . " -------- ------------- ----------\n";
       print $separator;
 
-
-      # print "  # Account                                                            ETH                        DAO (Est)Gas Voting Status\n";
-      # print "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
-
+      my $totalCost = 0;
       for (my $i = 0; $i < scalar keys %accounts; $i++) {
         my $account = $accounts{$i};
         if (!($account->{account} =~ /Total/)) {
-          my $estimatedGas;
+          my ($estimatedGas, $gasPrice, $cost);
+          my $costStr = "";
           my $votingStatus;
           if ($account->{dao} > 0) {
             $estimatedGas = checkProposalVoteStatus($account->{account}, $proposalId, 0);
@@ -409,16 +409,20 @@ sub listProposals {
           if ($checkPastVotes) {
             my ($position, $txHash) = getPastVotingStatus(\%pastVotes, $account->{account}, $proposalId);
             if (defined $position) {
-              $estimatedGas = getGasUsed($txHash);
+              ($estimatedGas, $gasPrice, $cost) = getGasUsed($txHash);
               $votingStatus = $position ne "false" ? "Voted Yea" : "Voted Nay";
+              $costStr = sprintf("%.7f", $cost);
+              $totalCost += $cost;
             }
           }
-          printf "%3d %-42s %*s %*s %8d %-13s\n", $i, $account->{account}, $ethNumberLength, $account->{eth}, 
-            $daoNumberLength, $account->{dao}, $estimatedGas, $votingStatus;
+          printf "%3d %-42s %*s %*s %8d %-13s %10s\n", $i, $account->{account}, $ethNumberLength, $account->{eth}, 
+            $daoNumberLength, $account->{dao}, $estimatedGas, $votingStatus, $costStr;
         }
       }
-      # print "--- ------------------------------------------ --------------------------- -------------------------- -------- -------------\n";
       print $separator;
+      if ($totalCost > 0) {
+          printf "    Total %*s %*s %58s %11.7f\n", $ethNumberLength, "", $daoNumberLength, "", "", $totalCost;
+      }
     }
     print "=" x $terminalWidth . "\n\n";
   }
@@ -439,7 +443,7 @@ sub sumSplits {
   my $split = "only";
   my %proposals = getProposals(1, $numberOfProposals, $proposalStatus, $split);
 
-            print "   Prop      Open             Yea             Nay Recipient                                  Description                             \n";
+            print "   Prop Status                Yea             Nay Recipient                                  Description                             \n";
   my $separator = "------- --------- --------------- --------------- ------------------------------------------ ----------------------------------------\n";
   print $separator;
   my ($totalYeaOpen, $totalNayOpen, $totalYeaExpired, $totalNayExpired, $totalYeaClosed, $totalNayClosed) = (0, 0, 0, 0, 0, 0);
@@ -945,21 +949,23 @@ sub getGasUsed {
   my ($txHash) = @_;
   printf scalar localtime . " getGasUsed($txHash)\n"
     if defined $verbose;
-  my $result = 0;
+  my ($gasUsed, $gasPrice, $cost) = (0, 0, 0);
   my $command = qq/
 var gasUsed = eth.getTransactionReceipt("$txHash").gasUsed;
-console.log("gasUsed\\t" + gasUsed);
+var gasPrice = eth.getTransaction("$txHash").gasPrice;
+var cost = web3.fromWei(gasUsed * gasPrice, "ether")
+console.log("gasUsed\\t" + gasUsed + "\\t" + gasPrice + "\\t" + cost);
 exit;
 /;
   my @output = executeGethCommand($command);
   for my $line (@output) {
     if ($line =~ /gasUsed\t\d+/) {
-      ($result) = $line =~ /gasUsed\t(\d+)/;
-      printf scalar localtime . " " . $result . "\n"
+      ($gasUsed, $gasPrice, $cost) = $line =~ /gasUsed\t(\d+)\t(\d+)\t(\d+.*)/;
+      printf scalar localtime . " " . $gasUsed . "\t" . $gasPrice . "\t" . $cost . "\n"
         if defined $verbose;
     }
   }
-  return $result;
+  return ($gasUsed, $gasPrice, $cost);
 }
 
 
