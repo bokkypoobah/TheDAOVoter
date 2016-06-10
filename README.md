@@ -3,7 +3,7 @@
 ### Description
 Perl script to list and vote on The DAO proposals
 
-The script `theDAOVoter` is a small (1,000 lines, 911 source lines) Perl script that allows you to:
+The script `theDAOVoter` is a small (1,015 lines, 928 source lines) Perl script that allows you to:
 * List The DAO proposals.
 * List your accounts, displaying whether The DAO transfers are blocked due to opened votes and expiry time.
 * List the DAO proposals with a listing of your accounts showing which accounts have already voted on each proposal. Past votes can also be listed along with the actual gas used.
@@ -32,6 +32,7 @@ This script calls the [Go Ethereum](https://github.com/ethereum/go-ethereum) `ge
 * v1.0000000000000007 07/06/2016 Tidy yea/YEA/nay/NAY
 * v1.0000000000000008 07/06/2016 --id renamed to --proposalid, improved --sumsplits
 * v1.0000000000000009 07/06/2016 --sumsplits report statistics
+* v1.0000000000000010 11/06/2016 --listproposals --checkpastvotes now with actual ETH cost and total
 
 <br />
 
@@ -49,7 +50,7 @@ Following are some sample uses of this script with results. Add the parameter `-
 
     # List proposal #2 checking the voting status of this proposal from your accounts
     user@Kumquat:~$ theDAOVoter --listproposals --proposalid=2 --checkvotingstatus --checkpastvotes --decimalplaces=2
-    ==============================================================================================
+    =========================================================================================================
     Proposal 2. OPEN until Sun Jun 12 03:18:37 2016
     Votes       Yea 2473115 (44.20%) Nay 3122385 (55.80%) Quorum 0.48% of 20%
     Creator     0x5a8e70f2d75c1468db4a2241fdd70e5a84f028b8
@@ -61,12 +62,13 @@ Following are some sample uses of this script with results. Add the parameter `-
     Do you believe in god?
     ----------------------------------------------------------------------------------------------
 
-      # Account                                            ETH          DAO (Est)Gas Voting Status
-    --- ------------------------------------------ ----------- ------------ -------- -------------
-      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.11       111.00    56287 Voted Nay
+      # Account                                            ETH          DAO (Est)Gas Voting Status   Cost ETH
+    --- ------------------------------------------ ----------- ------------ -------- ------------- ----------
+      0 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa      111.11       111.00    56287 Voted Nay      0.0011272
       1 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb      222.22       222.00    70851 Not voted yet
-    --- ------------------------------------------ ----------- ------------ -------- -------------
-    ==============================================================================================
+    --- ------------------------------------------ ----------- ------------ -------- ------------- ----------
+        Total                                                                                       0.0011272
+    =========================================================================================================
 
     # A NO vote on proposal #2 from account #1
     user@Kumquat:~$ theDAOVoter --vote --proposalid=2 --account=1 --support=0
@@ -157,7 +159,7 @@ Run the script without any parameters to view the following help text:
 
     user@Kumquat:~$ theDAOVoter 
     
-    The DAO Voter v1.0000000000000009 07/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
+    The DAO Voter v1.0000000000000010 11/06/2016. https://github.com/BokkyPooBah/TheDAOVoter
     
     Usage: theDAOVoter {command} [options]
     
@@ -208,6 +210,7 @@ Run the script without any parameters to view the following help text:
       v1.0000000000000007 07/06/2016 Tidy yea/YEA/nay/NAY
       v1.0000000000000008 07/06/2016 --id renamed to --proposalid, improved --sumsplits
       v1.0000000000000009 07/06/2016 --sumsplits report statistics
+      v1.0000000000000010 11/06/2016 --listproposals --checkpastvotes now with actual ETH cost and total
     
     
     REQUIREMENTS - This script runs on Linux and perhaps OSX. You can try it with Cygwin Perl, Strawberry Perl
